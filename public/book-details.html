@@ -200,6 +200,11 @@
 
   <!-- Inline Script to Load Book Data -->
   <script>
+  // Set API_BASE_URL for local and hosted environments
+  const API_BASE_URL = window.location.hostname.includes('localhost')
+    ? ''
+    : 'https://library-backend-j90e.onrender.com';
+
   let currentBookId = null;
 
   document.addEventListener('DOMContentLoaded', async () => {
