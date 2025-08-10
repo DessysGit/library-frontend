@@ -525,7 +525,7 @@ async function fetchUsers() {
 
 // Function to grant admin role to a user
 async function grantAdmin(userId) {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/grant-admin`, { method: 'POST' });
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/grant-admin`, { method: 'POST', credentials: 'include' });
     if (response.ok) {
         fetchUsers(); // Refresh user list after granting admin role
     } else {
@@ -536,7 +536,7 @@ async function grantAdmin(userId) {
 
 // Function to revoke admin role from a user
 async function revokeAdmin(userId) {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/revoke-admin`, { method: 'POST' });
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/revoke-admin`, { method: 'POST', credentials: 'include' });
     if (response.ok) {
         fetchUsers(); // Refresh user list after revoking admin role
     } else {
@@ -579,7 +579,7 @@ async function addBook() {
     if (bookFile) formData.append('bookFile', bookFile);
 
     try {
-        const response = await fetch(`${API_BASE_URL}/addBook`, { method: 'POST', body: formData });
+        const response = await fetch(`${API_BASE_URL}/addBook`, { method: 'POST', body: formData, credentials: 'include' });
         if (response.ok) {
             alert('Book added successfully');
             clearAddBookFields(); // Clear fields after successful addition
