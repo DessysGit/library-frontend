@@ -486,7 +486,7 @@ function hideLoadingSpinner() {
 // Function to fetch users and update the user list
 async function fetchUsers() {
     try {
-        const response = await fetch(`${API_BASE_URL}/users`);
+        const response = await fetch(`${API_BASE_URL}/users`, { credentials: 'include' });
         if (response.ok) {
             const users = await response.json();
             const userList = document.getElementById('user-list');
@@ -626,7 +626,7 @@ async function editBook(bookId) {
 
 // Function to delete a book
 async function deleteBook(bookId) {
-    const response = await fetch(`${API_BASE_URL}/books/${bookId}`, { method: 'DELETE' });
+    const response = await fetch(`${API_BASE_URL}/books/${bookId}`, { method: 'DELETE', credentials: 'include' });
     if (response.ok) {
         fetchBooks();
     } else {
