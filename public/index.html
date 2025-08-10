@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Des2 Library</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="header text-center">
+        <div class="container">
+            <h1 class="stylish-logo">Des2 Library</h1>
+            <p class="slogan">Your Gateway to Infinite Knowledge</p>
+        </div>
+    </header>
+
+    <!-- Hamburger button for navigation -->
+    <button id="hamburger-button" class="hamburger" aria-label="Open navigation menu" onclick="toggleMenu()" style="display: none;">&#9776;</button>
+
+    <!-- Sidebar menu -->
+    <div id="sidebar" class="sidebar">
+        <a href="javascript:void(0)" class="closebtn" onclick="toggleMenu()">&times;</a>
+        <div class="sidebar-header">
+            <img id="burger-profile-picture" src="" alt="Profile Picture" loading="lazy" style="width: 80px; height: 80px; border-radius: 50%;">
+            <p id="burger-username">Username</p>
+        </div>
+        <a href="javascript:void(0)" onclick="showSection('profile-section')">User Profile</a>
+        <a href="javascript:void(0)" onclick="showSection('admin-section')" id="manage-users-link" style="display: none;">Manage Users</a>
+        <a href="javascript:void(0)" onclick="showSection('add-book-section')" id="add-book-link" style="display: none;">Add Book</a>
+        <a href="javascript:void(0)" onclick="logout()">Logout</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <!-- Registration Form -->
+        <div id="register-form" class="mt-4" style="display: none;">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">Register</h2>
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" class="form-control" placeholder="Username">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" class="form-control" placeholder="Password">
+                    </div>
+                    <button onclick="register()" class="btn btn-primary">Register</button>
+                    <p class="mt-2">Already have an account? <a href="#" onclick="showLoginForm()">Login</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-form" class="mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">Login</h2>
+                    <div class="form-group">
+                        <label for="login-username">Username</label>
+                        <input type="text" id="login-username" class="form-control" placeholder="Username">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" class="form-control" placeholder="Password">
+                    </div>
+                    <button onclick="login()" class="btn btn-primary">Login</button>
+                    <p class="mt-2">Don't have an account? <a href="#" onclick="showRegisterForm()">Register</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Books Section -->
+<div id="search-books" class="mt-4" style="display: none;">
+    <div class="card bg-dark text-white shadow-lg p-4 border-0">
+      <div class="card-body text-center">
+        <h2 class="card-title text-success mb-2">
+          <i class="fas fa-search"></i> Search Books
+        </h2>
+        <p class="text-muted mb-3">You can fill in one or more fields — none are required.</p>
+  
+        <form onsubmit="fetchBooks(); return false;">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="search-title" class="float-left">Title</label>
+              <input type="text" id="search-title" class="form-control" placeholder="e.g., The Alchemist">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="search-author" class="float-left">Author</label>
+              <input type="text" id="search-author" class="form-control" placeholder="e.g., Paulo Coelho">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="search-genre" class="float-left">Genre</label>
+              <input type="text" id="search-genre" class="form-control" placeholder="e.g., Fiction">
+            </div>
+          </div>
+  
+          <button type="submit" class="btn btn-success w-100">Search</button>
+        </form>
+  
+        <!-- Optional Advanced Filters -->
+        <a href="javascript:void(0);" onclick="toggleAdvancedFilters()" class="text-light small mt-3 d-block">
+          + Advanced Filters
+        </a>
+  
+        <div id="advanced-filters" class="mt-3" style="display: none;">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="search-year" class="float-left">Published Year</label>
+              <input type="number" id="search-year" class="form-control" placeholder="e.g., 2020">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="search-rating" class="float-left">Minimum Rating</label>
+              <input type="number" id="search-rating" class="form-control" step="0.1" min="0" max="5" placeholder="e.g., 4.0">
+            </div>
+          </div>
+        </div>
+  
+        <p id="searching-msg" class="text-info mt-3" style="display: none;">
+          <i class="fas fa-spinner fa-spin"></i> Searching books...
+        </p>
+  
+        <p id="search-message" class="text-warning mt-2" style="display: none;">
+          Some books are not classified. Try searching by title or author if needed.
+        </p>
+      </div>
+    </div>
+  
+    <!-- Book List -->
+    <div class="card mt-4 bg-dark text-white shadow">
+      <div class="card-body text-center">
+        <h2 class="card-title text-success">Book List</h2>
+        <div id="book-list" class="book-list mt-4"></div>
+        <p id="no-results-message" class="text-danger mt-4" style="display: none;">No books found matching your search criteria.</p>
+        <nav aria-label="Page navigation">
+          <ul id="pagination" class="pagination justify-content-center mt-4"></ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+  
+
+        <!-- Add Book Section -->
+<div id="add-book-section" class="mt-4" style="display: none;">
+    <div class="card shadow-lg border-0 bg-dark text-white p-4">
+      <div class="card-body">
+        <h2 class="card-title text-success mb-4 text-center">📚 Add a New Book</h2>
+  
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="title">Book Title</label>
+              <input type="text" id="title" class="form-control" placeholder="e.g., The Alchemist">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="author">Author</label>
+              <input type="text" id="author" class="form-control" placeholder="e.g., Paulo Coelho">
+            </div>
+          </div>
+        </div>
+  
+        <div class="form-group">
+          <label for="description">Short Description</label>
+          <textarea id="description" class="form-control" rows="3" placeholder="A brief summary of the book..."></textarea>
+        </div>
+  
+        <div class="form-group">
+          <label for="genres">Genres</label>
+          <input type="text" id="genres" class="form-control" placeholder="e.g., Fiction, Philosophy">
+        </div>
+  
+        <div class="row">
+          <div class="col-md-6">
+            <label for="book-cover">Upload Book Cover</label>
+            <input type="file" id="book-cover" class="form-control-file">
+          </div>
+          <div class="col-md-6">
+            <label for="book-file">Upload Book File</label>
+            <input type="file" id="book-file" class="form-control-file">
+          </div>
+        </div>
+  
+        <div class="d-flex flex-column align-items-center mt-4">
+          <button onclick="addBook()" class="btn btn-success w-100 mb-2">Add Book</button>
+          <button onclick="showSection('search-books')" class="btn btn-outline-light">← Back to Main Page</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+        <!-- Admin Section to Manage Users -->
+        <div id="admin-section" class="mt-4" style="display: none;">
+          <div class="card shadow-lg bg-dark text-white p-4 border-0">
+            <div class="card-body">
+              <h2 class="card-title text-success text-center mb-4">👥 Manage Users</h2>
+              <div class="table-responsive">
+                <table class="table table-dark table-hover text-white">
+                  <thead class="thead-light">
+                    <tr>
+                      <th scope="col">👤 Username</th>
+                      <th scope="col">🔐 Role</th>
+                      <th scope="col" class="text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="user-list">
+                    <!-- Dynamically injected rows here -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="text-center mt-4">
+                <button onclick="showSection('search-books')" class="btn btn-outline-light">
+                  ← Back to Main Page
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Profile Section -->
+<div id="profile-section" style="display: none;">
+    <div class="card shadow-lg bg-dark text-white p-4">
+      <div class="card-body">
+        <h2 class="card-title text-success text-center mb-4">👤 Edit Profile</h2>
+  
+        <div class="text-center mb-4">
+          <img id="profile-picture" class="rounded-circle img-thumbnail" src="" alt="Profile Picture" loading="lazy" style="width: 120px; height: 120px;">
+          <input type="file" id="profile-picture-input" class="form-control-file mt-3">
+        </div>
+  
+        <div class="form-group">
+          <label for="profile-email">Email</label>
+          <input type="email" id="profile-email" class="form-control" placeholder="Enter your email" disabled>
+        </div>
+  
+        <div class="form-group">
+          <label for="profile-genres">Favorite Genres</label>
+          <input type="text" id="profile-genres" class="form-control" placeholder="e.g., Sci-fi, Romance" disabled>
+        </div>
+  
+        <div class="form-group">
+          <label for="profile-authors">Favorite Authors</label>
+          <input type="text" id="profile-authors" class="form-control" placeholder="e.g., Tolkien, Rowling" disabled>
+        </div>
+  
+        <div class="form-group">
+          <label for="profile-books">Favorite Books</label>
+          <input type="text" id="profile-books" class="form-control" placeholder="e.g., The Hobbit" disabled>
+        </div>
+  
+        <div class="form-group">
+          <label for="profile-password">New Password</label>
+          <input type="password" id="profile-password" class="form-control" placeholder="Enter new password">
+        </div>
+  
+        <div class="d-flex flex-column align-items-center gap-2">
+          <button id="edit-profile-button" onclick="enableProfileEditing()" class="btn btn-warning mb-2 w-100">Edit</button>
+          <button id="save-profile-button" onclick="updateProfile()" class="btn btn-success mb-2 w-100" style="display: none;">Save Changes</button>
+          <button onclick="showSection('search-books')" class="btn btn-outline-light w-100">← Back to Main Page</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+        <!-- Logout Button -->
+        <div class="mt-4 text-center">
+            <div class="button-wrapper">
+                <button id="logout-button" class="btn btn-danger" style="display: none;" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Newsletter Subscription Section -->
+        <section class="newsletter-section" id="newsletter-section">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-md-8 text-center">
+                        <h2>Stay Updated with Our Newsletter</h2>
+                        <p>Subscribe to our newsletter to receive the latest news and updates from our library.</p>
+                        <form id="subscription-form" onsubmit="subscribeNewsletter(event)">
+                            <div class="input-group">
+                                <input type="email" id="subscription-email" class="form-control" placeholder="Enter your email" required>
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-primary">Subscribe</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer mt-4" id="footer">
+            <div class="container">
+                <div class="row">
+                    <!-- About Section -->
+                    <div class="col-md-4">
+                        <h5>About Us</h5>
+                        <p>Our library provides a rich collection of books, ebooks, and resources to support your reading journey. Whether you're a student, a book lover, or just curious, we're here to help you find what you need.</p>
+                    </div>
+                    <!-- Quick Links Section -->
+                    <div class="col-md-4">
+                        <h5>Quick Links</h5>
+                        <ul class="list-unstyled">
+                            <li><a href="javascript:void(0)" onclick="logout()">Logout</a></li>
+                        </ul>
+                    </div>
+                    <!-- Contact Section -->
+                    <div class="col-md-4">
+                        <h5>Contact Us</h5>
+                        <address>
+                            <strong>Library</strong><br>
+                            Accra, Ghana<br>
+                            Ablekuma<br>
+                            <abbr title="Phone">Tel:</abbr> 050 0867 832<br>
+                            <a href="mailto:dessy6digit@gmail.com">info@library.com</a>
+                        </address>
+                        <h5>Follow Us</h5>
+                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-12 text-center">
+                        <p>&copy; 2025 Library. All rights reserved.</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+
+        <!-- Scripts -->
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="script.js"></script>
+
+        <!-- Floating Chat -->
+<div id="chat-icon" onclick="toggleChatbox()" style="display: none;">💬</div>
+
+<div id="chatbox" class="hidden">
+  <div id="chat-header">
+    <span>Ask AI</span>
+    <button onclick="toggleChatbox()">✖</button>
+  </div>
+  <div id="messages"></div>
+  <div id="input-area">
+    <input type="text" id="user-input" placeholder="Ask me something..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<link rel="stylesheet" href="chatbot/chat.css" />
+<script src="chatbot/chat.js"></script>
+
+</body>
+</html>
