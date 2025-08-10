@@ -200,11 +200,6 @@
 
   <!-- Inline Script to Load Book Data -->
   <script>
-  // Set API_BASE_URL for local and hosted environments
-  const API_BASE_URL = window.location.hostname.includes('localhost')
-    ? ''
-    : 'https://library-backend-j90e.onrender.com';
-
   let currentBookId = null;
 
   document.addEventListener('DOMContentLoaded', async () => {
@@ -218,7 +213,7 @@
     }
 
     try {
-      // Fetch book details
+      // Fetch book details (public, no credentials needed)
       const res = await fetch(`${API_BASE_URL}/books/${currentBookId}`);
       if (!res.ok) throw new Error('Failed to load book.');
       const book = await res.json();
@@ -237,8 +232,8 @@
       const dislikes = book.dislikes || 0;
       updateLikeUI(likes, dislikes, getUserAction(currentBookId));
 
-      // Check if user is admin
-      const userRes = await fetch(`${API_BASE_URL}/current-user`);
+      // Check if user is admin (authenticated, needs credentials)
+      const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
       if (userRes.ok) {
         const user = await userRes.json();
         if (user.role === 'admin') {
@@ -279,7 +274,7 @@
 
   async function handleLikeDislike(bookId, action) {
     try {
-      const res = await fetch(`${API_BASE_URL}/books/${bookId}/${action}`, { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/books/${bookId}/${action}`, { method: 'POST', credentials: 'include' });
       if (res.ok) {
         const updated = await res.json();
         const likes = updated.likes || 0;
@@ -336,6 +331,7 @@
       const response = await fetch(`${API_BASE_URL}/books/${bookId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(updatedDetails),
       });
 
@@ -357,7 +353,7 @@
 
   async function fetchRecommendations() {
     try {
-      const response = await fetch(`${API_BASE_URL}/recommendations?bookId=${currentBookId}`);
+      const response = await fetch(`${API_BASE_URL}/recommendations?bookId=${currentBookId}`, { credentials: 'include' });
       if (!response.ok) throw new Error(await response.text());
 
       const data = await response.json();
@@ -443,6 +439,7 @@
     const res = await fetch(`${API_BASE_URL}/books/${currentBookId}/reviews`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ text, rating }),
     });
 
@@ -487,6 +484,11 @@
   </div>
 </div>
 
+<link rel="stylesheet" href="chatbot/chat.css" />
+<script src="chatbot/chat.js"></script>
+
+</body>
+</html>
 <link rel="stylesheet" href="chatbot/chat.css" />
 <script src="chatbot/chat.js"></script>
 
