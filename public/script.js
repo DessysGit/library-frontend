@@ -878,7 +878,7 @@ async function checkAuthStatus() {
 // Function to handle like and dislike actions
 async function handleLikeDislike(bookId, action) {
     try {
-        const response = await fetch(`${API_BASE_URL}/books/${bookId}/${action}`, { method: 'POST' });
+        const response = await fetch(`${API_BASE_URL}/books/${bookId}/${action}`, { method: 'POST', credentials: 'include' });
         if (response.ok) {
             const { likes, dislikes } = await response.json();
 
