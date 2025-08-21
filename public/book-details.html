@@ -200,10 +200,6 @@
 
   <!-- Inline Script to Load Book Data -->
   <script>
-  const API_BASE_URL = window.location.hostname.includes('localhost')
-    ? ''
-    : 'https://library-backend-j90e.onrender.com';
-
   let currentBookId = null;
 
   document.addEventListener('DOMContentLoaded', async () => {
@@ -368,14 +364,18 @@
   async function fetchRecommendations() {
     try {
       const response = await fetch(`${API_BASE_URL}/recommendations?bookId=${currentBookId}`, { credentials: 'include' });
-      if (!response.ok) throw new Error(await response.text());
-
+      if (!response.ok) {
+        // If not authenticated, show a message
+        document.querySelector('#recommendations-container').innerHTML =
+          `<p class="text-muted text-center">Login to see recommendations.</p>`;
+        return;
+      }
       const data = await response.json();
       const recommendations = data.recommendations;
       const container = document.querySelector('#recommendations-container');
       container.innerHTML = "";
 
-      if (recommendations.length === 0) {
+      if (!recommendations || recommendations.length === 0) {
         container.innerHTML = `<p class="text-muted text-center">No recommendations available at the moment.</p>`;
         return;
       }
@@ -384,7 +384,6 @@
       row.classList.add('row', 'g-4');
 
       recommendations.forEach(rec => {
-        // Fix: prepend API_BASE_URL if cover is a relative path
         let coverUrl = rec.cover;
         if (coverUrl && coverUrl.startsWith('/uploads/')) {
           coverUrl = API_BASE_URL + coverUrl;
@@ -407,6 +406,8 @@
 
       container.appendChild(row);
     } catch (error) {
+      document.querySelector('#recommendations-container').innerHTML =
+        `<p class="text-muted text-center">Login to see recommendations.</p>`;
       console.error('Error fetching recommendations:', error);
     }
   }
@@ -426,11 +427,15 @@
       }
 
       reviews.forEach(review => {
+        let profilePic = review.profilePicture || '/default-profile.png';
+        if (profilePic && profilePic.startsWith('/uploads/')) {
+            profilePic = API_BASE_URL + profilePic;
+        }
         const card = document.createElement('div');
         card.classList.add('card', 'mb-3');
         card.innerHTML = `
                     <div class="card-body d-flex align-items-start">
-                        <img src="${review.profilePicture || '/default-profile.png'}" alt="Profile Picture" class="rounded-circle mr-3" style="width: 50px; height: 50px;">
+                        <img src="${profilePic}" alt="Profile Picture" class="rounded-circle mr-3" style="width: 50px; height: 50px;">
                         <div>
                             <p class="mb-1">${'⭐'.repeat(review.rating || 0)}</p>
                             <p class="card-text">${review.text}</p>
@@ -513,6 +518,10 @@
 </body>
 </html>
 <link rel="stylesheet" href="chatbot/chat.css" />
+<script src="chatbot/chat.js"></script>
+
+</body>
+</html>
 <script src="chatbot/chat.js"></script>
 
 </body>

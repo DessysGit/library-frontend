@@ -782,7 +782,11 @@ async function uploadProfilePicture() {
         const formData = new FormData();
         formData.append('profilePicture', fileInput.files[0]);
         try {
-            const response = await fetch(`${API_BASE_URL}/upload-profile-picture`, { method: 'POST', body: formData });
+            const response = await fetch(`${API_BASE_URL}/upload-profile-picture`, {
+                method: 'POST',
+                body: formData,
+                credentials: 'include' 
+            });
             if (response.ok) {
                 const data = await response.json();
                 document.getElementById('profile-picture').src = data.profilePicture + '?timestamp=' + new Date().getTime();
