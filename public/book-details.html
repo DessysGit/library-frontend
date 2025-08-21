@@ -200,6 +200,10 @@
 
   <!-- Inline Script to Load Book Data -->
   <script>
+  const API_BASE_URL = window.location.hostname.includes('localhost')
+    ? ''
+    : 'https://library-backend-j90e.onrender.com';
+
   let currentBookId = null;
 
   document.addEventListener('DOMContentLoaded', async () => {
@@ -218,13 +222,23 @@
       if (!res.ok) throw new Error('Failed to load book.');
       const book = await res.json();
 
+      // Fix: prepend API_BASE_URL if cover or file is a relative path
+      let coverUrl = book.cover;
+      if (coverUrl && coverUrl.startsWith('/uploads/')) {
+        coverUrl = API_BASE_URL + coverUrl;
+      }
+      let fileUrl = book.file;
+      if (fileUrl && fileUrl.startsWith('/uploads/')) {
+        fileUrl = API_BASE_URL + fileUrl;
+      }
+
       // Display book info
       document.getElementById('book-details-title').innerText = book.title;
       document.getElementById('book-details-author').innerText = book.author;
       document.getElementById('book-details-genres').innerText = book.genres;
       document.getElementById('book-details-summary').innerText = book.summary || 'No summary provided.';
-      document.getElementById('book-details-cover').src = book.cover;
-      document.getElementById('book-details-download').href = book.file;
+      document.getElementById('book-details-cover').src = coverUrl;
+      document.getElementById('book-details-download').href = fileUrl;
       document.getElementById('book-details-average-rating').innerText = (book.averageRating || 0).toFixed(1);
 
       // Display like/dislike counts
@@ -370,21 +384,25 @@
       row.classList.add('row', 'g-4');
 
       recommendations.forEach(rec => {
-        const col = document.createElement('div');
-        col.classList.add('col-md-3');
-        col.innerHTML = `
-          <div class="card h-100 shadow-sm">
-            <img src="/uploads/${rec.cover}" class="card-img-top" alt="Book Cover">
-            <div class="card-body">
-              <h5 class="card-title">${rec.title}</h5>
-              <p class="card-text">${rec.description}</p>
-              <a href="book-details.html?bookId=${rec.id}" class="btn btn-success w-100 mt-2">
-                <i class="fas fa-info-circle"></i> View
-              </a>
+        // Fix: prepend API_BASE_URL if cover is a relative path
+        let coverUrl = rec.cover;
+        if (coverUrl && coverUrl.startsWith('/uploads/')) {
+          coverUrl = API_BASE_URL + coverUrl;
+        }
+        row.innerHTML += `
+          <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+              <img src="${coverUrl}" class="card-img-top" alt="Book Cover">
+              <div class="card-body">
+                <h5 class="card-title">${rec.title}</h5>
+                <p class="card-text">${rec.description}</p>
+                <a href="book-details.html?bookId=${rec.id}" class="btn btn-success w-100 mt-2">
+                  <i class="fas fa-info-circle"></i> View
+                </a>
+              </div>
             </div>
           </div>
         `;
-        row.appendChild(col);
       });
 
       container.appendChild(row);

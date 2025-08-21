@@ -369,6 +369,11 @@ async function fetchBooks(query = "", page = 1) {
         if (bookList) {
             bookList.innerHTML = "";
             books.forEach(book => {
+                // Fix: prepend API_BASE_URL if cover is a relative path
+                let coverUrl = book.cover;
+                if (coverUrl && coverUrl.startsWith('/uploads/')) {
+                    coverUrl = API_BASE_URL + coverUrl;
+                }
                 const bookItem = document.createElement('div');
                 bookItem.classList.add('book-item');
                 bookItem.id = `book-${book.id}`;
@@ -378,7 +383,7 @@ async function fetchBooks(query = "", page = 1) {
                             <button class="btn btn-danger btn-sm" onclick="confirmDeleteBook(${book.id}, '${book.title.replace(/'/g, "\\'")}')">Delete</button>
                         </div>
                     ` : ''}
-                    <img src="${book.cover}" alt="Cover Image">
+                    <img src="${coverUrl}" alt="Cover Image">
                     <div class="details">
                         <div class="details-content">
                             <div class="main-info">
