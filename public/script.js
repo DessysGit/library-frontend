@@ -759,7 +759,7 @@ async function updateProfile() {
 
 // Function to fetch user profile and display it
 async function fetchProfile() {
-    const response = await fetch(`${API_BASE_URL}/profile`);
+    const response = await fetch(`${API_BASE_URL}/profile`, { credentials: 'include' });
     if (response.ok) {
         const user = await response.json();
         document.getElementById('profile-email').value = user.email;
@@ -767,8 +767,12 @@ async function fetchProfile() {
         document.getElementById('profile-authors').value = user.favoriteAuthors;
         document.getElementById('profile-books').value = user.favoriteBooks;
         if (user.profilePicture) {
-            document.getElementById('profile-picture').src = user.profilePicture + '?timestamp=' + new Date().getTime();
-            document.getElementById('burger-profile-picture').src = user.profilePicture + '?timestamp=' + new Date().getTime();
+            let profilePictureUrl = user.profilePicture;
+            if (profilePictureUrl && profilePictureUrl.startsWith('/uploads/')) {
+                profilePictureUrl = API_BASE_URL + profilePictureUrl;
+            }
+            document.getElementById('profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
+            document.getElementById('burger-profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
         }
     } else {
         alert('Failed to fetch profile');
@@ -789,8 +793,12 @@ async function uploadProfilePicture() {
             });
             if (response.ok) {
                 const data = await response.json();
-                document.getElementById('profile-picture').src = data.profilePicture + '?timestamp=' + new Date().getTime();
-                document.getElementById('burger-profile-picture').src = data.profilePicture + '?timestamp=' + new Date().getTime();
+                let profilePictureUrl = data.profilePicture;
+                if (profilePictureUrl && profilePictureUrl.startsWith('/uploads/')) {
+                    profilePictureUrl = API_BASE_URL + profilePictureUrl;
+                }
+                document.getElementById('profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
+                document.getElementById('burger-profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
                 alert('Profile picture uploaded successfully.');
             } else {
                 const errorMessage = await response.text();
