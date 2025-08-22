@@ -234,7 +234,7 @@
       document.getElementById('book-details-genres').innerText = book.genres;
       document.getElementById('book-details-summary').innerText = book.summary || 'No summary provided.';
       document.getElementById('book-details-cover').src = coverUrl;
-      document.getElementById('book-details-download').href = fileUrl;
+      document.getElementById('book-details-download').href = `${API_BASE_URL}/download/${currentBookId}`;
       document.getElementById('book-details-average-rating').innerText = (book.averageRating || 0).toFixed(1);
 
       // Display like/dislike counts
