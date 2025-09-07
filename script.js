@@ -41,9 +41,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isLoggedIn = await checkAuthStatus();
 
     // Fetch books only if the user is logged in and the search section exists
-    if (isLoggedIn && searchBooksSection) {
-        fetchBooks();
-    }
+    if (isLoggedIn) {
+    if (searchBooksSection) fetchBooks();
+    await refreshUserUI();   // ✅ avatar + username only
+}
 
     // Set up the outside click listener for the sidebar
     setupOutsideClickListener();
@@ -54,6 +55,7 @@ function isUserLoggedIn() {
     // Check if a token is present in localStorage
     return localStorage.getItem('authToken') !== null;
 }
+
 
 // Function to handle login
 async function login() {
@@ -758,24 +760,44 @@ async function updateProfile() {
 }
 
 // Function to fetch user profile and display it
-async function fetchProfile() {
-    const response = await fetch(`${API_BASE_URL}/profile`, { credentials: 'include' });
-    if (response.ok) {
-        const user = await response.json();
-        document.getElementById('profile-email').value = user.email;
-        document.getElementById('profile-genres').value = user.favoriteGenres;
-        document.getElementById('profile-authors').value = user.favoriteAuthors;
-        document.getElementById('profile-books').value = user.favoriteBooks;
-        if (user.profilePicture) {
-            let profilePictureUrl = user.profilePicture;
-            if (profilePictureUrl && profilePictureUrl.startsWith('/uploads/')) {
-                profilePictureUrl = API_BASE_URL + profilePictureUrl;
-            }
-            document.getElementById('profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
-            document.getElementById('burger-profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
+// just avatar + username
+async function refreshUserUI() {
+    const res = await fetch(`${API_BASE_URL}/profile`, { credentials: 'include' });
+    if (res.ok) {
+        const user = await res.json();
+
+        // Sidebar avatar
+        const burgerPic = document.getElementById('burger-profile-picture');
+        if (burgerPic && user.profilePicture) {
+            burgerPic.src = user.profilePicture + '?t=' + Date.now();
         }
-    } else {
-        alert('Failed to fetch profile');
+
+        // Sidebar username
+        const burgerUsername = document.getElementById('burger-username');
+        if (burgerUsername) burgerUsername.innerText = user.username;
+
+        return user;
+    }
+    return null;
+}
+
+// Only for Profile page (fills in form)
+async function fetchProfile() {
+    const user = await refreshUserUI();  // also updates avatar + username
+    if (!user) return;
+
+    const emailInput = document.getElementById('profile-email');
+    const genresInput = document.getElementById('profile-genres');
+    const authorsInput = document.getElementById('profile-authors');
+    const booksInput = document.getElementById('profile-books');
+    const profilePic = document.getElementById('profile-picture');
+
+    if (emailInput) emailInput.value = user.email || "";
+    if (genresInput) genresInput.value = user.favoriteGenres || "";
+    if (authorsInput) authorsInput.value = user.favoriteAuthors || "";
+    if (booksInput) booksInput.value = user.favoriteBooks || "";
+    if (profilePic && user.profilePicture) {
+        profilePic.src = user.profilePicture + '?t=' + Date.now();
     }
 }
 
@@ -1099,4 +1121,5 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuthStatus();
     setupOutsideClickListener();
     fetchRecommendations();
+    refreshUserUI();
 });
