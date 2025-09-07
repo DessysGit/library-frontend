@@ -38,12 +38,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (footer) footer.style.display = 'block'; // Show initially
 
     // Check authentication status and adjust UI elements
-    const isLoggedIn = await checkAuthStatus();
+const isLoggedIn = await checkAuthStatus();
 
-    // Fetch books only if the user is logged in and the search section exists
-    if (isLoggedIn && searchBooksSection) {
-        fetchBooks();
-    }
+if (isLoggedIn) {
+    if (searchBooksSection) fetchBooks();
+    await fetchProfile();
+}
 
     // Set up the outside click listener for the sidebar
     setupOutsideClickListener();
