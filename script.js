@@ -38,24 +38,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (footer) footer.style.display = 'block'; // Show initially
 
     // Check authentication status and adjust UI elements
-const isLoggedIn = await checkAuthStatus();
+    const isLoggedIn = await checkAuthStatus();
 
-if (isLoggedIn) {
-    if (searchBooksSection) fetchBooks();
-
-    // Just set avatar + username on startup
-    const res = await fetch(`${API_BASE_URL}/profile`, { credentials: 'include' });
-    if (res.ok) {
-        const user = await res.json();
-        if (user.profilePicture) {
-            const burgerPic = document.getElementById('burger-profile-picture');
-            if (burgerPic) burgerPic.src = user.profilePicture + '?timestamp=' + new Date().getTime();
-        }
-        const burgerUsername = document.getElementById('burger-username');
-        if (burgerUsername) burgerUsername.innerText = user.username;
+    // Fetch books only if the user is logged in and the search section exists
+    if (isLoggedIn && searchBooksSection) {
+        fetchBooks();
     }
-}
-
 
     // Set up the outside click listener for the sidebar
     setupOutsideClickListener();
@@ -774,36 +762,22 @@ async function fetchProfile() {
     const response = await fetch(`${API_BASE_URL}/profile`, { credentials: 'include' });
     if (response.ok) {
         const user = await response.json();
-
-        const emailInput = document.getElementById('profile-email');
-        const genresInput = document.getElementById('profile-genres');
-        const authorsInput = document.getElementById('profile-authors');
-        const booksInput = document.getElementById('profile-books');
-        const profilePic = document.getElementById('profile-picture');
-        const burgerPic = document.getElementById('burger-profile-picture');
-
-        if (emailInput) emailInput.value = user.email || "";
-        if (genresInput) genresInput.value = user.favoriteGenres || "";
-        if (authorsInput) authorsInput.value = user.favoriteAuthors || "";
-        if (booksInput) booksInput.value = user.favoriteBooks || "";
-
+        document.getElementById('profile-email').value = user.email;
+        document.getElementById('profile-genres').value = user.favoriteGenres;
+        document.getElementById('profile-authors').value = user.favoriteAuthors;
+        document.getElementById('profile-books').value = user.favoriteBooks;
         if (user.profilePicture) {
             let profilePictureUrl = user.profilePicture;
             if (profilePictureUrl && profilePictureUrl.startsWith('/uploads/')) {
                 profilePictureUrl = API_BASE_URL + profilePictureUrl;
             }
-            if (profilePic) profilePic.src = profilePictureUrl + '?timestamp=' + new Date().getTime();
-            if (burgerPic) burgerPic.src = profilePictureUrl + '?timestamp=' + new Date().getTime();
+            document.getElementById('profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
+            document.getElementById('burger-profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
         }
-
-        // Also restore username in sidebar
-        const burgerUsername = document.getElementById('burger-username');
-        if (burgerUsername) burgerUsername.innerText = user.username;
     } else {
         alert('Failed to fetch profile');
     }
 }
-
 
 // Function to upload profile picture
 async function uploadProfilePicture() {
