@@ -42,8 +42,20 @@ const isLoggedIn = await checkAuthStatus();
 
 if (isLoggedIn) {
     if (searchBooksSection) fetchBooks();
-    await fetchProfile();
+
+    // Just set avatar + username on startup
+    const res = await fetch(`${API_BASE_URL}/profile`, { credentials: 'include' });
+    if (res.ok) {
+        const user = await res.json();
+        if (user.profilePicture) {
+            const burgerPic = document.getElementById('burger-profile-picture');
+            if (burgerPic) burgerPic.src = user.profilePicture + '?timestamp=' + new Date().getTime();
+        }
+        const burgerUsername = document.getElementById('burger-username');
+        if (burgerUsername) burgerUsername.innerText = user.username;
+    }
 }
+
 
     // Set up the outside click listener for the sidebar
     setupOutsideClickListener();
