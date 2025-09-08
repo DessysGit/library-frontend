@@ -38,12 +38,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (footer) footer.style.display = 'block'; // Show initially
 
     // Check authentication status and adjust UI elements
-const isLoggedIn = await checkAuthStatus();
+    const isLoggedIn = await checkAuthStatus();
 
-if (isLoggedIn) {
-    if (searchBooksSection) fetchBooks();
-    await fetchProfile();
-}
+    // Fetch books only if the user is logged in and the search section exists
+    if (isLoggedIn && searchBooksSection) {
+        fetchBooks();
+    }
 
     // Set up the outside click listener for the sidebar
     setupOutsideClickListener();
@@ -128,11 +128,17 @@ async function login() {
 async function logout() {
     const response = await fetch(`${API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
     if (response.ok) {
+        // Clear form fields
         const loginUsername = document.getElementById('login-username');
         const loginPassword = document.getElementById('login-password');
-        if (loginUsername) loginUsername.value = ""; // Check if element exists before setting value
-        if (loginPassword) loginPassword.value = ""; // Check if element exists before setting value
+        if (loginUsername) loginUsername.value = "";
+        if (loginPassword) loginPassword.value = "";
 
+        // Clear localStorage
+        localStorage.removeItem('userProfilePicture');
+        localStorage.clear(); // Clear all localStorage items for this app
+
+        // Hide/show appropriate sections
         const hamburgerButton = document.getElementById('hamburger-button');
         const searchBooksSection = document.getElementById('search-books');
         const loginForm = document.getElementById('login-form');
@@ -162,11 +168,11 @@ async function logout() {
         if (profileSection) profileSection.style.display = 'none';
         if (addBookSection) addBookSection.style.display = 'none';
         if (newsletterSection) newsletterSection.style.display = 'none';
-        if (recommendationsSection) recommendationsSection.style.display = 'none'; // Hide initially
+        if (recommendationsSection) recommendationsSection.style.display = 'none';
         if (mainContent) mainContent.style.display = 'none';
         if (footer) footer.style.display = 'none';
-        if (bookList) bookList.innerHTML = ""; // Clear book list if it exists
-        if (pagination) pagination.innerHTML = ""; // Clear pagination if it exists
+        if (bookList) bookList.innerHTML = "";
+        if (pagination) pagination.innerHTML = "";
 
         // Clear the recommendations carousel if it exists
         const recommendationsCarousel = document.querySelector('#recommendations-carousel .carousel-inner');
@@ -178,7 +184,13 @@ async function logout() {
         }
 
         const chatIcon = document.getElementById('chat-icon');
-        if (chatIcon) chatIcon.style.display = 'none'; // Hide chatbot icon after logout
+        if (chatIcon) chatIcon.style.display = 'none';
+
+        // Reset profile pictures to default/empty
+        const profilePicture = document.getElementById('profile-picture');
+        const burgerProfilePicture = document.getElementById('burger-profile-picture');
+        if (profilePicture) profilePicture.src = '';
+        if (burgerProfilePicture) burgerProfilePicture.src = '';
 
         // Redirect to login page after logout
         window.location.href = "index.html";
@@ -762,17 +774,36 @@ async function fetchProfile() {
     const response = await fetch(`${API_BASE_URL}/profile`, { credentials: 'include' });
     if (response.ok) {
         const user = await response.json();
-        document.getElementById('profile-email').value = user.email;
-        document.getElementById('profile-genres').value = user.favoriteGenres;
-        document.getElementById('profile-authors').value = user.favoriteAuthors;
-        document.getElementById('profile-books').value = user.favoriteBooks;
-        if (user.profilePicture) {
-            let profilePictureUrl = user.profilePicture;
-            if (profilePictureUrl && profilePictureUrl.startsWith('/uploads/')) {
+        document.getElementById('profile-email').value = user.email || '';
+        document.getElementById('profile-genres').value = user.favoriteGenres || '';
+        document.getElementById('profile-authors').value = user.favoriteAuthors || '';
+        document.getElementById('profile-books').value = user.favoriteBooks || '';
+        
+        // Handle profile picture with localStorage fallback
+        let profilePictureUrl = user.profilePicture || localStorage.getItem('userProfilePicture');
+        
+        if (profilePictureUrl) {
+            // Ensure consistent URL handling
+            if (profilePictureUrl.startsWith('/uploads/') && API_BASE_URL) {
                 profilePictureUrl = API_BASE_URL + profilePictureUrl;
             }
-            document.getElementById('profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
-            document.getElementById('burger-profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
+            
+            const timestampUrl = profilePictureUrl + '?timestamp=' + new Date().getTime();
+            
+            const profilePictureElement = document.getElementById('profile-picture');
+            const burgerProfilePictureElement = document.getElementById('burger-profile-picture');
+            
+            if (profilePictureElement) {
+                profilePictureElement.src = timestampUrl;
+            }
+            if (burgerProfilePictureElement) {
+                burgerProfilePictureElement.src = timestampUrl;
+            }
+            
+            // Update localStorage if server provided a URL
+            if (user.profilePicture) {
+                localStorage.setItem('userProfilePicture', user.profilePicture);
+            }
         }
     } else {
         alert('Failed to fetch profile');
@@ -794,11 +825,29 @@ async function uploadProfilePicture() {
             if (response.ok) {
                 const data = await response.json();
                 let profilePictureUrl = data.profilePicture;
-                if (profilePictureUrl && profilePictureUrl.startsWith('/uploads/')) {
+                
+                // Ensure consistent URL handling
+                if (profilePictureUrl && profilePictureUrl.startsWith('/uploads/') && API_BASE_URL) {
                     profilePictureUrl = API_BASE_URL + profilePictureUrl;
                 }
-                document.getElementById('profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
-                document.getElementById('burger-profile-picture').src = profilePictureUrl + '?timestamp=' + new Date().getTime();
+                
+                // Add cache busting timestamp
+                const timestampUrl = profilePictureUrl + '?timestamp=' + new Date().getTime();
+                
+                // Update all profile picture elements
+                const profilePictureElement = document.getElementById('profile-picture');
+                const burgerProfilePictureElement = document.getElementById('burger-profile-picture');
+                
+                if (profilePictureElement) {
+                    profilePictureElement.src = timestampUrl;
+                }
+                if (burgerProfilePictureElement) {
+                    burgerProfilePictureElement.src = timestampUrl;
+                }
+                
+                // Store the URL in localStorage for persistence across page reloads
+                localStorage.setItem('userProfilePicture', profilePictureUrl);
+                
                 alert('Profile picture uploaded successfully.');
             } else {
                 const errorMessage = await response.text();
@@ -856,7 +905,7 @@ async function checkAuthStatus() {
             if (newsletterSection) newsletterSection.style.display = 'block';
             if (recommendationsSection) recommendationsSection.style.display = 'block';
             if (hamburgerButton) hamburgerButton.style.display = 'block';
-            if (searchBooksSection) searchBooksSection.style.display = 'block'; // Ensure "Search Books" is shown
+            if (searchBooksSection) searchBooksSection.style.display = 'block';
             if (footer) footer.style.display = 'block';
 
             // Hide other sections by default
@@ -864,15 +913,32 @@ async function checkAuthStatus() {
             if (profileSection) profileSection.style.display = 'none';
             if (manageUsersLink) manageUsersLink.style.display = 'none';
 
-            // Update sidebar and profile section with user info
+            // Update sidebar with user info
             if (burgerUsername) burgerUsername.innerText = user.username;
-            if (profilePicture && user.profilePicture) {
-                profilePicture.src = user.profilePicture + '?timestamp=' + new Date().getTime();
-            }
-            if (burgerProfilePicture && user.profilePicture) { 
-                burgerProfilePicture.src = user.profilePicture + '?timestamp=' + new Date().getTime();
-            }
 
+            // Handle profile picture with fallback to localStorage
+            let profilePictureUrl = user.profilePicture || localStorage.getItem('userProfilePicture');
+            
+            if (profilePictureUrl) {
+                // Ensure consistent URL handling
+                if (profilePictureUrl.startsWith('/uploads/') && API_BASE_URL) {
+                    profilePictureUrl = API_BASE_URL + profilePictureUrl;
+                }
+                
+                const timestampUrl = profilePictureUrl + '?timestamp=' + new Date().getTime();
+                
+                if (profilePicture) {
+                    profilePicture.src = timestampUrl;
+                }
+                if (burgerProfilePicture) { 
+                    burgerProfilePicture.src = timestampUrl;
+                }
+                
+                // Update localStorage if the server provided a newer URL
+                if (user.profilePicture) {
+                    localStorage.setItem('userProfilePicture', user.profilePicture);
+                }
+            }
 
             // Update admin links and buttons based on user role
             if (userRole === 'admin') {
@@ -884,20 +950,22 @@ async function checkAuthStatus() {
             }
 
             const chatIcon = document.getElementById('chat-icon');
-            if (chatIcon) chatIcon.style.display = 'block'; // Show chatbot icon if user is authenticated
-            return true; // User is authenticated
+            if (chatIcon) chatIcon.style.display = 'block';
+            return true;
         } else {
             showLoginForm();
+            // Clear localStorage on auth failure
+            localStorage.removeItem('userProfilePicture');
             const chatIcon = document.getElementById('chat-icon');
-            if (chatIcon) chatIcon.style.display = 'none'; // Hide chatbot icon if user is not authenticated
-            return false; // User is not authenticated
+            if (chatIcon) chatIcon.style.display = 'none';
+            return false;
         }
     } catch (error) {
         console.error('Error checking auth status:', error);
         showLoginForm();
         const chatIcon = document.getElementById('chat-icon');
-        if (chatIcon) chatIcon.style.display = 'none'; // Hide chatbot icon on error
-        return false; // User is not authenticated
+        if (chatIcon) chatIcon.style.display = 'none';
+        return false;
     }
 }
 
