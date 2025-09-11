@@ -44,21 +44,6 @@ body {
     text-align: center;
     border-bottom: 3px solid #FFD700; /* Adds a golden underline */
 }
-
-/* Header */
-.header {
-    background-color: #343a40;
-    padding: 20px 0;
-    color: white;
-    text-align: center;
-}
-
-.header h1 {
-    color: white;
-    margin: 0;
-    font-size: 24px;
-}
-
 /* Sidebar */
 .sidebar {
     height: 100%;
@@ -801,33 +786,44 @@ button:active::after {
   font-size: 14px;
 }
 
-/* Hide loading indicator after auth check */
-.loading-auth {
-    display: none !important;
-}
+/* style for the loading overlay */
 
-/* Add a loading spinner for initial auth check */
-.auth-loading {
+#loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: #121212;
+    background-color: rgba(18, 18, 18, 0.95);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
+    backdrop-filter: blur(5px);
 }
 
-/* Spinner styles */
-.auth-loading .spinner {
+.loading-content {
+    text-align: center;
+    color: white;
+}
+
+.loading-content .loader {
+    margin: 0 auto 20px auto;
     width: 40px;
     height: 40px;
-    border: 4px solid #333;
-    border-top: 4px solid #1DB954;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+}
+
+.loading-content p {
+    color: #1DB954;
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
 }
 
 
