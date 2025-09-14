@@ -112,67 +112,211 @@ function isUserLoggedIn() {
 
 // Function to handle login
 async function login() {
-    const username = document.getElementById('login-username').value;
+    const emailOrUsername = document.getElementById('login-email-username').value.trim();
     const password = document.getElementById('login-password').value;
-    const response = await fetch(`${API_BASE_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ username, password })
-    });
-    
-    if (response.ok) {
-        const user = await response.json();
-        
-        // Set user role and show appropriate UI elements
-        userRole = user.role;
-        
-        const hamburgerButton = document.getElementById('hamburger-button');
-        const searchBooksSection = document.getElementById('search-books');
-        const manageUsersLink = document.getElementById('manage-users-link');
-        const addBookLink = document.getElementById('add-book-link');
-        const adminButton = document.getElementById('admin-button');
-        const loginForm = document.getElementById('login-form');
-        const newsletterSection = document.getElementById('newsletter-section');
-        const mainContent = document.getElementById('main-content');
-        const recommendationsSection = document.getElementById('recommendations-section');
-        const footer = document.getElementById('footer');
 
-        // Update UI visibility
-        if (hamburgerButton) hamburgerButton.style.display = 'block';
-        if (searchBooksSection) searchBooksSection.style.display = 'block';
-        if (loginForm) loginForm.style.display = 'none';
-        if (newsletterSection) newsletterSection.style.display = 'block';
-        if (recommendationsSection) recommendationsSection.style.display = 'block';
-        if (mainContent) mainContent.style.display = 'block';
-        if (footer) footer.style.display = 'block';
+    // Clear previous messages
+    document.getElementById('login-messages').innerHTML = '';
 
-        if (userRole === 'admin') {
-            if (manageUsersLink) manageUsersLink.style.display = 'block';
-            if (addBookLink) addBookLink.style.display = 'block';
-            if (adminButton) adminButton.style.display = 'block';
+    if (!emailOrUsername || !password) {
+        displayMessage('login-messages', 'Please fill in all fields', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                emailOrUsername: emailOrUsername,
+                password: password 
+            })
+        });
+
+        if (response.ok) {
+            const user = await response.json();
+            
+            // Set user role
+            userRole = user.role;
+            
+            // Hide login forms and show main app
+            const hamburgerButton = document.getElementById('hamburger-button');
+            const searchBooksSection = document.getElementById('search-books');
+            const manageUsersLink = document.getElementById('manage-users-link');
+            const addBookLink = document.getElementById('add-book-link');
+            const adminButton = document.getElementById('admin-button');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const resendModal = document.getElementById('resend-verification-modal');
+            const newsletterSection = document.getElementById('newsletter-section');
+            const mainContent = document.getElementById('main-content');
+            const recommendationsSection = document.getElementById('recommendations-section');
+            const footer = document.getElementById('footer');
+
+            // Hide forms and show main content
+            if (loginForm) loginForm.style.display = 'none';
+            if (registerForm) registerForm.style.display = 'none';
+            if (resendModal) resendModal.style.display = 'none';
+            
+            // Show authenticated UI
+            if (hamburgerButton) hamburgerButton.style.display = 'block';
+            if (searchBooksSection) searchBooksSection.style.display = 'block';
+            if (newsletterSection) newsletterSection.style.display = 'block';
+            if (recommendationsSection) recommendationsSection.style.display = 'block';
+            if (mainContent) mainContent.style.display = 'block';
+            if (footer) footer.style.display = 'block';
+
+            if (userRole === 'admin') {
+                if (manageUsersLink) manageUsersLink.style.display = 'block';
+                if (addBookLink) addBookLink.style.display = 'block';
+                if (adminButton) adminButton.style.display = 'block';
+            }
+
+            // Update sidebar with user info
+            const burgerUsername = document.getElementById('burger-username');
+            if (burgerUsername) burgerUsername.innerText = user.username;
+            
+            // Wait a moment for the session to be fully established
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Now make authenticated requests
+            try {
+                await refreshProfilePicture();
+            } catch (error) {
+                console.log('Profile picture refresh failed:', error.message);
+            }
+
+            // Fetch fresh data
+            fetchBooks();
+            
+            // Fetch recommendations with error handling
+            try {
+                await fetchRecommendations();
+            } catch (error) {
+                console.log('Recommendations fetch failed:', error.message);
+            }
+
+            const chatIcon = document.getElementById('chat-icon');
+            if (chatIcon) chatIcon.style.display = 'block';
+            
+            // Clear form
+            document.getElementById('login-email-username').value = '';
+            document.getElementById('login-password').value = '';
+            
         } else {
-            if (addBookLink) addBookLink.style.display = 'none';
+            const data = await response.json();
+            let errorMessage = data.error || data.message || 'Login failed';
+            
+            // Handle email verification error specifically
+            if (data.error === 'Email not verified') {
+                errorMessage = data.message + '<br><small><a href="#" onclick="showResendVerificationWithEmail(\'' + data.userEmail + '\')">Click here to resend verification email</a></small>';
+            }
+            
+            displayMessage('login-messages', errorMessage, 'error');
         }
-
-        // Update sidebar with user info
-        document.getElementById('burger-username').innerText = user.username;
-        
-        // Always refresh profile picture from database after login
-        await refreshProfilePicture();
-
-        // Fetch fresh data
-        fetchBooks();
-        fetchRecommendations();
-
-        const chatIcon = document.getElementById('chat-icon');
-        if (chatIcon) chatIcon.style.display = 'block';
-        
-    } else {
-        const errorMessage = await response.text();
-        alert('Failed to login: ' + errorMessage);
+    } catch (error) {
+        console.error('Login error:', error);
+        displayMessage('login-messages', 'Network error. Please try again.', 'error');
     }
 }
+
+// Show resend verification form
+function showResendVerification() {
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const resendModal = document.getElementById('resend-verification-modal');
+    
+    if (loginForm) loginForm.style.display = 'none';
+    if (registerForm) registerForm.style.display = 'none';
+    if (resendModal) resendModal.style.display = 'block';
+    
+    // Clear messages
+    document.getElementById('resend-messages').innerHTML = '';
+}
+
+// Hide resend verification form
+function hideResendVerification() {
+    const resendModal = document.getElementById('resend-verification-modal');
+    const loginForm = document.getElementById('login-form');
+    
+    if (resendModal) resendModal.style.display = 'none';
+    if (loginForm) loginForm.style.display = 'block';
+    
+    // Clear form and messages
+    document.getElementById('resend-email').value = '';
+    document.getElementById('resend-messages').innerHTML = '';
+}
+
+// Resend verification email
+async function resendVerification() {
+    const email = document.getElementById('resend-email').value.trim();
+    
+    // Clear previous messages
+    document.getElementById('resend-messages').innerHTML = '';
+
+    if (!email) {
+        displayMessage('resend-messages', 'Email is required', 'error');
+        return;
+    }
+
+    if (!isValidEmail(email)) {
+        displayMessage('resend-messages', 'Please enter a valid email address', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/resend-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            displayMessage('resend-messages', data.message, 'success');
+            document.getElementById('resend-email').value = '';
+            
+            // Additional helpful message
+            setTimeout(() => {
+                displayMessage('resend-messages', 
+                    data.message + '<br><br><strong>Remember:</strong><br>• Check your spam folder<br>• The link expires in 24 hours<br>• Come back here to log in after verifying', 
+                    'success'
+                );
+            }, 2000);
+            
+            // Automatically go back to login after 6 seconds
+            setTimeout(() => {
+                hideResendVerification();
+                displayMessage('login-messages', 'Verification email sent! Please check your email and click the link.', 'info');
+            }, 6000);
+            
+        } else {
+            displayMessage('resend-messages', data.message || data.error || 'Failed to resend verification email', 'error');
+        }
+    } catch (error) {
+        console.error('Resend verification error:', error);
+        displayMessage('resend-messages', 'Network error. Please try again.', 'error');
+    }
+}
+// Check if we're on the email verification page
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if this is a verification page load
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    if (token && window.location.pathname.includes('verify-email')) {
+        // This is handled by the server route /verify-email
+        // No additional JavaScript needed
+        return;
+    }
+    
+    // Continue with normal page initialization
+    checkAuthStatus();
+    setupOutsideClickListener();
+    fetchRecommendations();
+});
 
 // Function to handle logout
 async function logout() {
@@ -734,30 +878,143 @@ function confirmDeleteBook(bookId, bookTitle) {
     }
 }
 
+// Email validation function
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+// Username validation function
+function isValidUsername(username) {
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    return usernameRegex.test(username) && username.length >= 3;
+}
+
+function showResendVerificationWithEmail(email) {
+    showResendVerification();
+    if (email) {
+        document.getElementById('resend-email').value = email;
+    }
+}
+
+// Display message function
+function displayMessage(elementId, message, type = 'error') {
+    const messageElement = document.getElementById(elementId);
+    if (messageElement) {
+        let alertClass = 'alert-danger'; // default
+        if (type === 'success') alertClass = 'alert-success';
+        if (type === 'info') alertClass = 'alert-info';
+        
+        messageElement.innerHTML = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="this.parentElement.style.display='none'"></button>
+        </div>`;
+        
+        // Auto-hide success messages after 8 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                if (messageElement.innerHTML.includes('alert-success')) {
+                    messageElement.innerHTML = '';
+                }
+            }, 8000);
+        }
+        
+        // Auto-hide info messages after 10 seconds
+        if (type === 'info') {
+            setTimeout(() => {
+                if (messageElement.innerHTML.includes('alert-info')) {
+                    messageElement.innerHTML = '';
+                }
+            }, 10000);
+        }
+    }
+}
+
 // Function to register a new user
 async function register() {
-    const username = document.getElementById('register-username').value;
+    const email = document.getElementById('register-email').value.trim();
+    const username = document.getElementById('register-username').value.trim();
     const password = document.getElementById('register-password').value;
+    const confirmPassword = document.getElementById('register-confirm-password').value;
 
-    if (!username || !password) {
-        alert('Please fill in all required fields.');
+    // Clear previous messages
+    document.getElementById('register-messages').innerHTML = '';
+
+    // Client-side validation
+    const errors = [];
+
+    if (!email) {
+        errors.push('Email is required');
+    } else if (!isValidEmail(email)) {
+        errors.push('Please enter a valid email address');
+    }
+
+    if (!username) {
+        errors.push('Username is required');
+    } else if (!isValidUsername(username)) {
+        errors.push('Username must be at least 3 characters and contain only letters, numbers, and underscores');
+    }
+
+    if (!password) {
+        errors.push('Password is required');
+    } else if (password.length < 6) {
+        errors.push('Password must be at least 6 characters long');
+    }
+
+    if (!confirmPassword) {
+        errors.push('Please confirm your password');
+    } else if (password !== confirmPassword) {
+        errors.push('Passwords do not match');
+    }
+
+    if (errors.length > 0) {
+        displayMessage('register-messages', errors.join('<br>'), 'error');
         return;
     }
 
-    const response = await fetch(`${API_BASE_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
+    try {
+        const response = await fetch(`${API_BASE_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password })
+        });
 
-    if (response.ok) {
-        alert('Registration successful. Please log in.');
-        document.getElementById('register-username').value = "";
-        document.getElementById('register-password').value = "";
-        showLoginForm();
-    } else {
-        const errorMessage = await response.text();
-        alert('Failed to register: ' + errorMessage);
+        const data = await response.json();
+
+        if (response.ok) {
+            displayMessage('register-messages', data.message, 'success');
+            
+            // Clear form
+            document.getElementById('register-email').value = '';
+            document.getElementById('register-username').value = '';
+            document.getElementById('register-password').value = '';
+            document.getElementById('register-confirm-password').value = '';
+            
+            // Show additional message about checking email
+            setTimeout(() => {
+                displayMessage('register-messages', 
+                    data.message + '<br><br><strong>Next steps:</strong><br>1. Check your email inbox (and spam folder)<br>2. Click the verification link<br>3. Return here to log in', 
+                    'success'
+                );
+            }, 1000);
+            
+            // Automatically show login form after 5 seconds
+            setTimeout(() => {
+                showLoginForm();
+                displayMessage('login-messages', 'Please check your email and click the verification link, then log in here.', 'info');
+            }, 5000);
+            
+        } else {
+            if (data.errors && data.errors.length > 0) {
+                const errorMessages = data.errors.map(error => error.msg).join('<br>');
+                displayMessage('register-messages', errorMessages, 'error');
+            } else {
+                displayMessage('register-messages', data.error || 'Registration failed', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        displayMessage('register-messages', 'Network error. Please try again.', 'error');
     }
 }
 
@@ -765,6 +1022,7 @@ async function register() {
 function showLoginForm() {
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
+    const resendModal = document.getElementById('resend-verification-modal');
     const mainContent = document.getElementById('main-content');
     const newsletterSection = document.getElementById('newsletter-section');
     const recommendationsSection = document.getElementById('recommendations-section');
@@ -775,9 +1033,10 @@ function showLoginForm() {
     const profileSection = document.getElementById('profile-section');
     const manageUsersLink = document.getElementById('manage-users-link');
 
-    // Show the login form and hide others
+    // Show login form and hide others
     if (loginForm) loginForm.style.display = 'block';
     if (registerForm) registerForm.style.display = 'none';
+    if (resendModal) resendModal.style.display = 'none';
     if (mainContent) mainContent.style.display = 'none';
     if (newsletterSection) newsletterSection.style.display = 'none';
     if (recommendationsSection) recommendationsSection.style.display = 'none';
@@ -787,17 +1046,60 @@ function showLoginForm() {
     if (adminButton) adminButton.style.display = 'none';
     if (profileSection) profileSection.style.display = 'none';
     if (manageUsersLink) manageUsersLink.style.display = 'none';
+    
+    // Clear messages
+    document.getElementById('login-messages').innerHTML = '';
 }
 
 // Function to show the registration form
 function showRegisterForm() {
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
+    const resendModal = document.getElementById('resend-verification-modal');
 
-    // Show the registration form and hide the login form
+    // Show registration form and hide others
     if (loginForm) loginForm.style.display = 'none';
     if (registerForm) registerForm.style.display = 'block';
+    if (resendModal) resendModal.style.display = 'none';
+    
+    // Clear messages
+    document.getElementById('register-messages').innerHTML = '';
 }
+
+// Add enter key support for forms
+document.addEventListener('DOMContentLoaded', () => {
+    // Login form enter key
+    const loginEmailUsername = document.getElementById('login-email-username');
+    const loginPassword = document.getElementById('login-password');
+    
+    if (loginEmailUsername) {
+        loginEmailUsername.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+    }
+    
+    if (loginPassword) {
+        loginPassword.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+    }
+    
+    // Register form enter key
+    const registerConfirmPassword = document.getElementById('register-confirm-password');
+    if (registerConfirmPassword) {
+        registerConfirmPassword.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') register();
+        });
+    }
+    
+    // Resend verification form enter key
+    const resendEmail = document.getElementById('resend-email');
+    if (resendEmail) {
+        resendEmail.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') resendVerification();
+        });
+    }
+});
 
 // Function to enable profile editing
 function enableProfileEditing() {

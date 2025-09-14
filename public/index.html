@@ -37,41 +37,84 @@
     <div class="container mt-5">
         <!-- Registration Form -->
         <div id="register-form" class="mt-4" style="display: none;">
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="card-title">Register</h2>
-                    <div class="form-group">
-                        <label for="register-username">Username</label>
-                        <input type="text" id="register-username" class="form-control" placeholder="Username">
-                    </div>
-                    <div class="form-group">
-                        <label for="register-password">Password</label>
-                        <input type="password" id="register-password" class="form-control" placeholder="Password">
-                    </div>
-                    <button onclick="register()" class="btn btn-primary">Register</button>
-                    <p class="mt-2">Already have an account? <a href="#" onclick="showLoginForm()">Login</a></p>
-                </div>
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">Create Account</h2>
+            
+            <div class="form-group">
+                <label for="register-email">Email Address *</label>
+                <input type="email" id="register-email" class="form-control" placeholder="your@email.com" required>
+                <small class="text-muted">We'll send a verification link to this email</small>
             </div>
+            
+            <div class="form-group">
+                <label for="register-username">Username *</label>
+                <input type="text" id="register-username" class="form-control" placeholder="Choose a username" required>
+                <small class="text-muted">Letters, numbers, and underscores only</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="register-password">Password *</label>
+                <input type="password" id="register-password" class="form-control" placeholder="At least 6 characters" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="register-confirm-password">Confirm Password *</label>
+                <input type="password" id="register-confirm-password" class="form-control" placeholder="Repeat your password" required>
+            </div>
+            
+            <button onclick="register()" class="btn btn-primary mb-3">Create Account</button>
+            <div id="register-messages" class="mt-2"></div>
+            
+            <p class="mt-2">Already have an account? <a href="#" onclick="showLoginForm()">Sign In</a></p>
         </div>
+    </div>
+</div>
 
         <!-- Login Form -->
         <div id="login-form" class="mt-4">
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="card-title">Login</h2>
-                    <div class="form-group">
-                        <label for="login-username">Username</label>
-                        <input type="text" id="login-username" class="form-control" placeholder="Username">
-                    </div>
-                    <div class="form-group">
-                        <label for="login-password">Password</label>
-                        <input type="password" id="login-password" class="form-control" placeholder="Password">
-                    </div>
-                    <button onclick="login()" class="btn btn-primary">Login</button>
-                    <p class="mt-2">Don't have an account? <a href="#" onclick="showRegisterForm()">Register</a></p>
-                </div>
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">Sign In</h2>
+            
+            <div class="form-group">
+                <label for="login-email-username">Email or Username</label>
+                <input type="text" id="login-email-username" class="form-control" placeholder="Enter email or username">
             </div>
+            
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" class="form-control" placeholder="Enter password">
+            </div>
+            
+            <button onclick="login()" class="btn btn-primary mb-3">Sign In</button>
+            <div id="login-messages" class="mt-2"></div>
+            
+            <p class="mt-2">
+                Don't have an account? <a href="#" onclick="showRegisterForm()">Create Account</a><br>
+                <small><a href="#" onclick="showResendVerification()">Didn't receive verification email?</a></small>
+            </p>
         </div>
+    </div>
+</div>
+
+<!-- Resend Verification Modal -->
+<div id="resend-verification-modal" class="mt-4" style="display: none;">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">Resend Verification Email</h2>
+            
+            <div class="form-group">
+                <label for="resend-email">Email Address</label>
+                <input type="email" id="resend-email" class="form-control" placeholder="your@email.com" required>
+            </div>
+            
+            <button onclick="resendVerification()" class="btn btn-success mb-2">Resend Verification</button>
+            <button onclick="hideResendVerification()" class="btn btn-secondary">Cancel</button>
+            <div id="resend-messages" class="mt-2"></div>
+        </div>
+    </div>
+</div>
 
         <!-- Search Books Section -->
 <div id="search-books" class="mt-4" style="display: none;">
@@ -301,7 +344,7 @@
                             Accra, Ghana<br>
                             Ablekuma<br>
                             <abbr title="Phone">Tel:</abbr> 050 0867 832<br>
-                            <a href="mailto:dessy6digit@gmail.com">info@library.com</a>
+                            <a href="mailto:dessy6digit@gmail.com">des2library.com</a>
                         </address>
                         <h5>Follow Us</h5>
                         <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
