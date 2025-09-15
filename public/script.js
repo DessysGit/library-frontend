@@ -1,7 +1,25 @@
-// Change this to your hosted backend URL when deployed
-const API_BASE_URL = window.location.hostname.includes('localhost')
-  ? '' // Local: same origin
-  : 'https://library-backend-j90e.onrender.com';
+// Automatic API URL detection based on current environment
+const API_BASE_URL = (() => {
+  const currentHost = window.location.hostname;
+  const isLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1';
+  const isNetlify = currentHost.includes('netlify.app');
+  
+  if (isLocalhost) {
+    // Local development
+    console.log('🔧 Running in LOCAL development mode');
+    return ''; // Same origin for local development
+  } else if (isNetlify || window.location.protocol === 'https:') {
+    // Production (Netlify or any HTTPS site)
+    console.log('🌐 Running in PRODUCTION mode');
+    return 'https://library-backend-j90e.onrender.com';
+  } else {
+    // Fallback
+    console.log('⚠️ Unknown environment, using production backend');
+    return 'https://library-backend-j90e.onrender.com';
+  }
+})();
+
+console.log(`📡 API Base URL: ${API_BASE_URL || 'Same Origin'}`);
 
 // Define the seed admin username
 const seedAdminUsername = 'admin';
