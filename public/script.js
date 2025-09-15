@@ -796,7 +796,10 @@ async function revokeAdmin(userId) {
 
 // Function to delete a user
 async function deleteUser(userId) {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}`, { method: 'DELETE' });
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`, { 
+        method: 'DELETE',
+        credentials: 'include'
+    });
     if (response.ok) {
         fetchUsers(); // Refresh user list after deleting user
     } else {
