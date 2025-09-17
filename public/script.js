@@ -29,41 +29,60 @@ let userRole = "";
 
 // Ensure the necessary elements are hidden on initial load
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM Content Loaded - Starting initialization...');
+    
     // Show loading state initially
     showLoadingState();
     
-    const hamburgerButton = document.getElementById('hamburger-button');
-    const searchBooksSection = document.getElementById('search-books');
-    const manageUsersLink = document.getElementById('manage-users-link');
-    const addBookLink = document.getElementById('add-book-link');
-    const adminButton = document.getElementById('admin-button');
-    const adminSection = document.getElementById('admin-section');
-    const profileSection = document.getElementById('profile-section');
-    const newsletterSection = document.getElementById('newsletter-section');
-    const recommendationsSection = document.getElementById('recommendations-section');
-    const loginForm = document.getElementById('login-form');
-    const mainContent = document.getElementById('main-content');
-    const footer = document.getElementById('footer');
-
-    // Hide all sections initially
-    const allSections = [
-        hamburgerButton, searchBooksSection, manageUsersLink, addBookLink, 
-        adminButton, adminSection, profileSection, newsletterSection, 
-        recommendationsSection, loginForm, mainContent, footer
-    ];
-    
-    allSections.forEach(element => {
-        if (element) element.style.display = 'none';
-    });
-
     try {
-        // Check authentication status first
-        const isLoggedIn = await checkAuthStatus();
+        // Get all UI elements
+        const hamburgerButton = document.getElementById('hamburger-button');
+        const searchBooksSection = document.getElementById('search-books');
+        const manageUsersLink = document.getElementById('manage-users-link');
+        const addBookLink = document.getElementById('add-book-link');
+        const adminButton = document.getElementById('admin-button');
+        const adminSection = document.getElementById('admin-section');
+        const profileSection = document.getElementById('profile-section');
+        const newsletterSection = document.getElementById('newsletter-section');
+        const recommendationsSection = document.getElementById('recommendations-section');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const mainContent = document.getElementById('main-content');
+        const footer = document.getElementById('footer');
+        const chatIcon = document.getElementById('chat-icon');
+
+        // Hide all sections initially
+        const allSections = [
+            hamburgerButton, searchBooksSection, manageUsersLink, addBookLink, 
+            adminButton, adminSection, profileSection, newsletterSection, 
+            recommendationsSection, loginForm, registerForm, mainContent, footer, chatIcon
+        ];
+        
+        allSections.forEach(element => {
+            if (element) element.style.display = 'none';
+        });
+
+        // Add timeout to prevent infinite loading
+        const authCheckPromise = checkAuthStatus();
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Auth check timeout')), 10000)
+        );
+
+        let isAuthenticated = false;
+        try {
+            isAuthenticated = await Promise.race([authCheckPromise, timeoutPromise]);
+            console.log('Auth check completed:', isAuthenticated);
+        } catch (error) {
+            console.error('Auth check failed or timed out:', error);
+            // Default to showing login form on auth check failure
+            isAuthenticated = false;
+        }
         
         // Hide loading state
         hideLoadingState();
         
-        if (isLoggedIn) {
+        if (isAuthenticated) {
+            console.log('User is authenticated - showing main app');
             // User is authenticated - show main app
             if (hamburgerButton) hamburgerButton.style.display = 'block';
             if (searchBooksSection) searchBooksSection.style.display = 'block';
@@ -71,54 +90,91 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (recommendationsSection) recommendationsSection.style.display = 'block';
             if (mainContent) mainContent.style.display = 'block';
             if (footer) footer.style.display = 'block';
+            if (chatIcon) chatIcon.style.display = 'block';
             
-            // Only fetch books if we're on the main page (has search inputs)
+            // Admin-specific elements are handled in checkAuthStatus()
+            
+            // Only fetch data if we're on the main page with required elements
             const titleInput = document.getElementById('search-title');
             if (titleInput) {
-                fetchBooks();
+                try {
+                    await fetchBooks();
+                    console.log('Books fetched successfully');
+                } catch (error) {
+                    console.error('Error fetching books:', error);
+                }
             }
             
-            // Only fetch recommendations if we're on the main page (has recommendations section)
+            // Only fetch recommendations if section exists
             if (recommendationsSection) {
-                fetchRecommendations();
+                try {
+                    await fetchRecommendations();
+                    console.log('Recommendations fetched successfully');
+                } catch (error) {
+                    console.error('Error fetching recommendations:', error);
+                }
             }
         } else {
+            console.log('User is not authenticated - showing login form');
             // User is not authenticated - show login form
-            if (loginForm) loginForm.style.display = 'block';
+            if (loginForm) {
+                loginForm.style.display = 'block';
+            } else {
+                console.error('Login form element not found!');
+            }
+            
+            // Ensure other elements are hidden
+            if (registerForm) registerForm.style.display = 'none';
+            if (chatIcon) chatIcon.style.display = 'none';
         }
+        
+        console.log('Initialization completed successfully');
+        
     } catch (error) {
-        console.error('Error during initialization:', error);
+        console.error('Critical error during initialization:', error);
         hideLoadingState();
-        // Fallback to login form on error
-        if (loginForm) loginForm.style.display = 'block';
+        
+        // Fallback: show login form
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.style.display = 'block';
+            console.log('Showed fallback login form');
+        }
     }
 
-    // Set up the outside click listener for the sidebar
+    // Set up the outside click listener for the sidebar (always do this)
     setupOutsideClickListener();
 });
 
-// Add these loading state functions to script.js:
+// Functions to show/hide loading state
 function showLoadingState() {
-    // Create or show loading overlay
-    let loadingOverlay = document.getElementById('loading-overlay');
-    if (!loadingOverlay) {
-        loadingOverlay = document.createElement('div');
-        loadingOverlay.id = 'loading-overlay';
-        loadingOverlay.innerHTML = `
-            <div class="loading-content">
-                <div class="loader"></div>
-                <p>Loading...</p>
-            </div>
-        `;
-        document.body.appendChild(loadingOverlay);
+    try {
+        let loadingOverlay = document.getElementById('loading-overlay');
+        if (!loadingOverlay) {
+            loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loading-overlay';
+            loadingOverlay.innerHTML = `
+                <div class="loading-content">
+                    <div class="loader"></div>
+                    <p>Loading...</p>
+                </div>
+            `;
+            document.body.appendChild(loadingOverlay);
+        }
+        loadingOverlay.style.display = 'flex';
+    } catch (error) {
+        console.error('Error showing loading state:', error);
     }
-    loadingOverlay.style.display = 'flex';
 }
 
 function hideLoadingState() {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
+    try {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error hiding loading state:', error);
     }
 }
 
@@ -575,6 +631,8 @@ async function fetchWithErrorHandling(url, options = {}) {
 
 // Using fetchWithErrorHandling in fetchBooks
 async function fetchBooks(query = "", page = 1) {
+    console.log('fetchBooks called with query:', query, 'page:', page);
+    
     const titleInput = document.getElementById('search-title');
     const authorInput = document.getElementById('search-author');
     const genreInput = document.getElementById('search-genre');
@@ -589,18 +647,33 @@ async function fetchBooks(query = "", page = 1) {
     const author = authorInput ? authorInput.value : "";
     const genre = genreInput ? genreInput.value : "";
 
-    const limit = 10; // Number of books per page
-    const searchQuery = `title=${title}&author=${author}&genre=${genre}&page=${page}&limit=${limit}`;
+    const limit = 10;
+    const searchQuery = `title=${encodeURIComponent(title)}&author=${encodeURIComponent(author)}&genre=${encodeURIComponent(genre)}&page=${page}&limit=${limit}`;
 
     // Show the searching message
     const searchingMsg = document.getElementById('searching-msg');
     if (searchingMsg) searchingMsg.style.display = 'block';
 
     try {
+        console.log('Fetching books with query:', searchQuery);
         showLoadingSpinner();
-        const data = await fetchWithErrorHandling(`/books?${searchQuery}`);
-        const books = data.books;
-        const totalBooks = data.total;
+        
+        const response = await fetch(`${API_BASE_URL}/books?${searchQuery}`, {
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Books data received:', data.books?.length || 0, 'books');
+        
+        const books = data.books || [];
+        const totalBooks = data.total || 0;
         const totalPages = Math.ceil(totalBooks / limit);
         const bookList = document.getElementById('book-list');
         const pagination = document.getElementById('pagination');
@@ -618,7 +691,7 @@ async function fetchBooks(query = "", page = 1) {
             bookList.innerHTML = "";
             books.forEach(book => {
                 // Fix: prepend API_BASE_URL if cover is a relative path
-                let coverUrl = book.cover;
+                let coverUrl = book.cover || '';
                 if (coverUrl && coverUrl.startsWith('/uploads/')) {
                     coverUrl = API_BASE_URL + coverUrl;
                 }
@@ -628,16 +701,16 @@ async function fetchBooks(query = "", page = 1) {
                 bookItem.innerHTML = `
                     ${userRole === 'admin' ? `
                         <div class="delete-action">
-                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteBook(${book.id}, '${book.title.replace(/'/g, "\\'")}')">Delete</button>
+                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteBook(${book.id}, '${(book.title || '').replace(/'/g, "\\'")}')">Delete</button>
                         </div>
                     ` : ''}
-                    <img src="${coverUrl}" alt="Cover Image">
+                    <img src="${coverUrl || '/default-book-cover.png'}" alt="Cover Image" onerror="this.src='/default-book-cover.png'">
                     <div class="details">
                         <div class="details-content">
                             <div class="main-info">
-                                <h5>${book.title}</h5>
-                                <p><strong>Author: </strong> ${book.author}</p>
-                                <p class="description-text">${book.description}</p>
+                                <h5>${book.title || 'No Title'}</h5>
+                                <p><strong>Author: </strong> ${book.author || 'Unknown'}</p>
+                                <p class="description-text">${book.description || 'No description available'}</p>
                             </div>
                         </div>
                         <div class="like-dislike-ratings">
@@ -659,7 +732,7 @@ async function fetchBooks(query = "", page = 1) {
 
                 // Highlight the like/dislike buttons based on user action
                 const userAction = getUserAction(book.id);
-                updateLikeDislikeUI(book.id, book.likes, book.dislikes, userAction);
+                updateLikeDislikeUI(book.id, book.likes || 0, book.dislikes || 0, userAction);
             });
         }
 
@@ -675,6 +748,12 @@ async function fetchBooks(query = "", page = 1) {
                 pageItem.innerHTML = `<button class="page-link" onclick="fetchBooks('${title}', ${i})">${i}</button>`;
                 pagination.appendChild(pageItem);
             }
+        }
+    } catch (error) {
+        console.error('Error fetching books:', error);
+        const bookList = document.getElementById('book-list');
+        if (bookList) {
+            bookList.innerHTML = '<p class="text-center text-danger">Error loading books. Please try again.</p>';
         }
     } finally {
         hideLoadingSpinner();
@@ -1516,7 +1595,10 @@ function deleteBookDetails() {
 // Function to fetch and display recommendations
 async function fetchRecommendations() {
     try {
-        const response = await fetch(`${API_BASE_URL}/recommendations`, { credentials: 'include' });
+        const response = await fetchWithTimeout(`${API_BASE_URL}/recommendations`, { 
+            credentials: 'include' 
+        }, 5000);
+        
         if (response.ok) {
             const data = await response.json();
             const recommendations = data.recommendations || []; // safer extraction
@@ -1551,10 +1633,11 @@ async function fetchRecommendations() {
                 });
             }
         } else {
-            console.error('Failed to fetch recommendations:', await response.text());
+            console.log('Recommendations fetch failed - user may not be authenticated');
         }
     } catch (error) {
-        console.error('Error fetching recommendations:', error);
+        console.log('Error fetching recommendations (non-critical):', error.message);
+        // Don't throw error - recommendations are not critical for app functionality
     }
 }
 
