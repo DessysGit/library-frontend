@@ -190,32 +190,34 @@ body {
     opacity: 1;
 }
 
-/* Book List */
+/* Book List - Uniform Card Heights with Truncated Descriptions */
 .book-item {
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
-    background: rgba(255, 255, 255, 0.08); /* Subtle transparency */
+    background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
     border-radius: 12px;
     padding: 18px;
     margin-bottom: 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* Green glow */
-    transition: transform 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease; /* Smooth transition for blur */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
     border: 1px solid rgba(29, 185, 84, 0.3);
     position: relative;
+    min-height: 200px; /* Set minimum height for consistency */
+    max-height: 250px; /* Set maximum height to prevent overflow */
 }
 
 .book-item:hover {
     transform: scale(1.05);
     box-shadow: 0 10px 30px rgba(29, 185, 84, 0.4);
-    backdrop-filter: none; /* Remove blur effect on hover */
+    backdrop-filter: none;
 }
 
-/* Keep Your Book Cover Style */
+/* Keep image consistent */
 .book-item img {
-    width: 120px; /* Slightly larger width */
-    height: 160px; /* Slightly larger height */
+    width: 120px;
+    height: 200px;
     border-radius: 10px;
     object-fit: cover;
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
@@ -223,23 +225,23 @@ body {
     flex-shrink: 0;
 }
 
-/* Book Details */
+/* Book Details Container */
 .book-item .details {
     flex: 1;
     margin-right: 0;
     color: white;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-between; /* This ensures content is distributed evenly */
     position: relative;
+    height: 200px; /* Match image height for alignment */
+    overflow: hidden; /* Prevent content overflow */
 }
 
 .book-item .details-content {
     display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: space-between;
-    width: 100%;
+    flex-direction: column;
+    height: 100%;
 }
 
 .book-item .main-info {
@@ -247,16 +249,47 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    position: relative;
+    margin-bottom: 15px;
 }
 
-/* Remove the description-actions-row flex effect and revert description centering */
-.book-item .main-info .description-text {
-    flex: unset;
-    margin: 0 auto;
-    padding: 0;
-    text-align: center;
-    width: 100%;
+/* Title styling */
+.book-item .main-info h5 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #1DB954;
+    line-height: 1.2;
+    max-height: 2.4em; /* Limit to 2 lines */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* Author styling */
+.book-item .main-info p:nth-child(2) {
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #ccc;
+}
+
+/* Description styling with truncation */
+.book-item .description-text {
+    font-size: 13px;
+    line-height: 1.4;
+    color: #aaa;
+    text-align: left;
+    margin: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* Limit to 3 lines */
+    line-clamp: 3; /* Standard property for compatibility */
+    -webkit-box-orient: vertical;
+    max-height: 4.2em; /* 3 lines * 1.4 line-height = 4.2em */
 }
 
 .book-item .actions {
@@ -312,6 +345,62 @@ body {
 .book-item .delete-action button:hover {
     background: #b52a37;
     color: #fff;
+}
+
+/* Bottom actions section */
+.book-item .like-dislike-ratings {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto; /* Push to bottom */
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.like-dislike-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.like-dislike-buttons button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.3s ease-in-out;
+    padding: 4px 8px;
+    max-width: 65px;
+}
+
+.like-dislike-buttons button.active {
+    color: #1DB954;
+}
+
+.like-dislike-buttons button:hover {
+    color: #1DB954;
+}
+
+/* Download button */
+.like-dislike-ratings .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: 80px;
+    max-width: 120px;
+}
+
+/* Ratings section */
+.ratings {
+    text-align: right;
+}
+
+.ratings span {
+    font-size: 12px;
+    color: white;
+}
+
+.ratings .fa-star {
+    color: gold;
 }
 
 /* Search Bar */
@@ -867,34 +956,6 @@ body {
     color: gold;
 }
 
-.like-dislike-ratings {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-}
-
-.ratings span {
-    font-size: 16px;
-    font-weight: bold;
-    color: white;
-    text-align: right;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.ratings .fa-star {
-    color: gold;
-}
-
-.like-dislike-buttons button,
-.book-item .details .btn {
-    width: auto; /* Allow buttons to adjust width dynamically */
-    padding: 8px 16px; /* Increase padding for a wider appearance */
-    font-size: 16px; /* Slightly larger font size */
-}
-
 /* Table Styles */
 .table {
     width: 100%;
@@ -1018,6 +1079,40 @@ a:hover {
     }
 }
 
+/* Fallback for browsers that don't support -webkit-line-clamp */
+@supports not (-webkit-line-clamp: 3) {
+    .book-item .description-text {
+        max-height: 4.2em;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .book-item .description-text::after {
+        content: '...';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background: linear-gradient(to right, transparent, rgba(42, 42, 42, 1) 50%);
+        padding-left: 20px;
+    }
+}
+
+/* Enhanced ellipsis for better visual appeal */
+.book-item .description-text.truncated {
+    position: relative;
+}
+
+.book-item .description-text.truncated::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30px;
+    height: 1.4em;
+    background: linear-gradient(to right, transparent, rgba(42, 42, 42, 0.9) 70%);
+    pointer-events: none;
+}
+
 /* Mobile-first responsive design for book items */
 @media (max-width: 768px) {
     .book-item {
@@ -1025,6 +1120,9 @@ a:hover {
         text-align: center;
         padding: 15px;
         margin-bottom: 15px;
+        min-height: auto;
+        max-height: none;
+        height: auto;
     }
 
     .book-item img {
@@ -1035,7 +1133,7 @@ a:hover {
     }
 
     .book-item .details {
-        margin-right: 0;
+        height: auto;
         width: 100%;
     }
 
@@ -1051,8 +1149,10 @@ a:hover {
     }
 
     .book-item .main-info h5 {
-        font-size: 18px;
-        margin-bottom: 8px;
+        font-size: 16px;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        max-height: 2em;
     }
 
     .book-item .main-info p {
@@ -1061,34 +1161,20 @@ a:hover {
     }
 
     .book-item .description-text {
+        -webkit-line-clamp: 2; 
+        line-clamp: 2;
+        max-height: 2.8em;
+        text-align: center;
+        margin-bottom: 15px;
         font-size: 13px;
         line-height: 1.4;
-        margin: 10px 0;
-        padding: 0 10px;
     }
 
-    .book-item .actions {
-        flex-direction: row;
-        justify-content: center;
-        align-items: center;
-        margin: 0;
-        width: 100%;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .book-item .actions button,
-    .book-item .actions a {
-        width: auto;
-        min-width: 80px;
-        padding: 8px 12px;
-        font-size: 12px;
-    }
-
-    .like-dislike-ratings {
+    .book-item .like-dislike-ratings {
         flex-direction: column;
-        align-items: center;
-        gap: 15px;
+        gap: 10px;
+        border-top: none;
+        padding-top: 0;
         margin-top: 15px;
     }
 
@@ -1110,6 +1196,9 @@ a:hover {
     .ratings span {
         font-size: 14px;
         justify-content: center;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     .book-item .delete-action {
@@ -1203,7 +1292,10 @@ a:hover {
     }
 
     .book-item .main-info h5 {
-        font-size: 16px;
+        font-size: 14px;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        max-height: 1.4em;
     }
 
     .book-item .main-info p {
@@ -1212,10 +1304,13 @@ a:hover {
 
     .book-item .description-text {
         font-size: 12px;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        max-height: 2.4em;
     }
 
     .like-dislike-buttons button {
-        font-size: 14px;
+        font-size: 12px;
         padding: 6px 10px;
         min-width: 50px;
     }

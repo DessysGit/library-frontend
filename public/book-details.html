@@ -37,67 +37,64 @@
   <button id="hamburger-button" class="hamburger" onclick="toggleMenu()" style="display: none;">&#9776;</button>
 
   <!-- Book Details Section -->
-  <section id="book-details-section" class="container my-5">
-    <div class="card bg-dark text-white p-4 rounded shadow-lg border-0">
-      <div class="row align-items-center">
-        <div class="col-md-4 text-center mb-3 mb-md-0">
-          <img id="book-details-cover" src="" alt="Book Cover" class="img-fluid rounded shadow" style="max-height: 350px; object-fit: cover;">
-          <a id="book-details-download" href="#" class="btn btn-success mt-3 w-100" download>
-            <i class="fas fa-download"></i> Download Book
-          </a>
-        </div>
-        <div class="col-md-8">
-          <h2 id="book-details-title" class="text-success mb-3">Book Title</h2>
-          <p><strong>Author:</strong> <span id="book-details-author">Author Name</span></p>
-          <p><strong>Genres:</strong> <span id="book-details-genres">Genres</span></p>
-          <p><strong>Average Rating:</strong> <span id="book-details-average-rating">0</span> / 5</p>
-          <hr class="bg-light"/>
-          <p><strong>Summary:</strong></p>
-          <p id="book-details-summary" class="text-muted">Brief summary of the book...</p>
-          <div class="d-flex justify-content-start align-items-center mt-4" id="like-dislike-section">
-            <button class="like-button" onclick="handleLikeDislike(currentBookId, 'like')">
-                <i class="fas fa-thumbs-up"></i> <span id="like-count">0</span>
-            </button>
-            <button class="dislike-button ml-3" onclick="handleLikeDislike(currentBookId, 'dislike')">
-                <i class="fas fa-thumbs-down"></i> <span id="dislike-count">0</span>
-            </button>
-        </div>
-        </div>
+<section id="book-details-section" class="container my-5">
+  <div class="card bg-dark text-white p-4 rounded shadow-lg border-0">
+    <div class="row align-items-center">
+      <div class="col-md-4 text-center mb-3 mb-md-0">
+        <img id="book-details-cover" src="" alt="Book Cover" class="img-fluid rounded shadow" style="max-height: 350px; object-fit: cover;">
+        <a id="book-details-download" href="#" class="btn btn-success mt-3 w-100" download>
+          <i class="fas fa-download"></i> Download Book
+        </a>
       </div>
-
-      <!-- Admin Edit Panel -->
-      <!-- Clear separation for the Edit Book Info section -->
-      <hr style="border: 2px dashed orange; margin: 2rem 0;">
-      <div id="admin-edit-fields" class="mt-4" style="display: none;" data-book-id="">
-        <h4 class="text-warning">Edit Book Info</h4>
-        <div class="row">
-          <div class="col-md-6">
-            <label for="edit-title">Title</label>
-            <input type="text" id="edit-title" class="form-control mb-2">
-          </div>
-          <div class="col-md-6">
-            <label for="edit-author">Author</label>
-            <input type="text" id="edit-author" class="form-control mb-2">
-          </div>
-          <div class="col-md-6">
-            <label for="edit-genres">Genres</label>
-            <input type="text" id="edit-genres" class="form-control mb-2">
-          </div>
-          <div class="col-md-6">
-            <label for="edit-summary">Summary</label>
-            <textarea id="edit-summary" class="form-control mb-2" rows="2"></textarea>
-          </div>
-          <div class="col-md-6">
-            <label for="edit-description">Description</label>
-            <textarea id="edit-description" class="form-control mb-2" rows="3"></textarea>
-          </div>
-          <div class="col-12">
-            <button onclick="saveBookDetails()" class="btn btn-primary w-100 mt-3">Save Changes</button>
-          </div>
+      <div class="col-md-8">
+        <h2 id="book-details-title" class="text-success mb-3">Book Title</h2>
+        <p><strong>Author:</strong> <span id="book-details-author">Author Name</span></p>
+        <p><strong>Genres:</strong> <span id="book-details-genres">Genres</span></p>
+        <p><strong>Average Rating:</strong> <span id="book-details-average-rating">0</span> / 5</p>
+        <hr class="bg-light"/>
+        <p><strong>Description:</strong></p>
+        <div id="book-details-description" class="text-muted" style="max-height: 200px; overflow-y: auto; line-height: 1.6; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;">
+          Full description of the book will appear here...
+        </div>
+        <div class="d-flex justify-content-start align-items-center mt-4" id="like-dislike-section">
+          <button class="like-button" onclick="handleLikeDislike(currentBookId, 'like')">
+              <i class="fas fa-thumbs-up"></i> <span id="like-count">0</span>
+          </button>
+          <button class="dislike-button ml-3" onclick="handleLikeDislike(currentBookId, 'dislike')">
+              <i class="fas fa-thumbs-down"></i> <span id="dislike-count">0</span>
+          </button>
         </div>
       </div>
     </div>
-  </section>
+
+      <!-- Admin Edit Panel -->
+    <hr style="border: 2px dashed orange; margin: 2rem 0;">
+    <div id="admin-edit-fields" class="mt-4" style="display: none;" data-book-id="">
+      <h4 class="text-warning">Edit Book Info</h4>
+      <div class="row">
+        <div class="col-md-6">
+          <label for="edit-title">Title</label>
+          <input type="text" id="edit-title" class="form-control mb-2">
+        </div>
+        <div class="col-md-6">
+          <label for="edit-author">Author</label>
+          <input type="text" id="edit-author" class="form-control mb-2">
+        </div>
+        <div class="col-md-6">
+          <label for="edit-genres">Genres</label>
+          <input type="text" id="edit-genres" class="form-control mb-2">
+        </div>
+        <div class="col-md-12">
+          <label for="edit-description">Description</label>
+          <textarea id="edit-description" class="form-control mb-2" rows="4" placeholder="Enter the full book description..."></textarea>
+        </div>
+        <div class="col-12">
+          <button onclick="saveBookDetails()" class="btn btn-primary w-100 mt-3">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 
   <!-- Review Section -->
@@ -187,7 +184,7 @@
         </div>
         <div class="row mt-4">
             <div class="col-md-12 text-center">
-                <p>&copy; 2025 Library. All rights reserved.</p>
+                <p>&copy; 2025 Des2 Library. All rights reserved.</p>
             </div>
         </div>
     </div>
@@ -200,23 +197,22 @@
 
   <!-- Inline Script to Load Book Data -->
   <script>
-  let currentBookId = null;
+let currentBookId = null;
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    const params = new URLSearchParams(window.location.search);
-    currentBookId = params.get('bookId');
-    if (!currentBookId || currentBookId === "undefined" || isNaN(Number(currentBookId))) {
-      alert('Book ID is missing or invalid!');
-      // Optionally redirect to main page:
-      window.location.href = "index.html";
-      return;
-    }
+document.addEventListener('DOMContentLoaded', async () => {
+  const params = new URLSearchParams(window.location.search);
+  currentBookId = params.get('bookId');
+  if (!currentBookId || currentBookId === "undefined" || isNaN(Number(currentBookId))) {
+    alert('Book ID is missing or invalid!');
+    window.location.href = "index.html";
+    return;
+  }
 
-    try {
-      // Fetch book details (public, no credentials needed)
-      const res = await fetch(`${API_BASE_URL}/books/${currentBookId}`);
-      if (!res.ok) throw new Error('Failed to load book.');
-      const book = await res.json();
+  try {
+    // Fetch book details (public, no credentials needed)
+    const res = await fetch(`${API_BASE_URL}/books/${currentBookId}`);
+    if (!res.ok) throw new Error('Failed to load book.');
+    const book = await res.json();
 
       // Fix: prepend API_BASE_URL if cover or file is a relative path
       let coverUrl = book.cover;
@@ -229,43 +225,43 @@
       }
 
       // Display book info
-      document.getElementById('book-details-title').innerText = book.title;
-      document.getElementById('book-details-author').innerText = book.author;
-      document.getElementById('book-details-genres').innerText = book.genres;
-      document.getElementById('book-details-summary').innerText = book.summary || 'No summary provided.';
-      document.getElementById('book-details-cover').src = coverUrl;
-      document.getElementById('book-details-download').href = `${API_BASE_URL}/download/${currentBookId}`;
-      document.getElementById('book-details-average-rating').innerText = (book.averageRating || 0).toFixed(1);
+    document.getElementById('book-details-title').innerText = book.title;
+    document.getElementById('book-details-author').innerText = book.author;
+    document.getElementById('book-details-genres').innerText = book.genres;
+    document.getElementById('book-details-description').innerHTML = book.description || 'No description provided.';
+    document.getElementById('book-details-cover').src = coverUrl;
+    document.getElementById('book-details-download').href = `${API_BASE_URL}/download/${currentBookId}`;
+    document.getElementById('book-details-average-rating').innerText = (book.averageRating || 0).toFixed(1);
 
       // Display like/dislike counts
-      const likes = book.likes || 0;
-      const dislikes = book.dislikes || 0;
-      updateLikeUI(likes, dislikes, getUserAction(currentBookId));
+    const likes = book.likes || 0;
+    const dislikes = book.dislikes || 0;
+    updateLikeUI(likes, dislikes, getUserAction(currentBookId));
 
       // Check if user is admin (authenticated, needs credentials)
-      const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
-      if (userRes.ok) {
-        const user = await userRes.json();
-        if (user.role === 'admin') {
-          const editFields = document.getElementById('admin-edit-fields');
-          editFields.style.display = 'block';
-          editFields.setAttribute('data-book-id', currentBookId);
+    const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
+    if (userRes.ok) {
+      const user = await userRes.json();
+      if (user.role === 'admin') {
+        const editFields = document.getElementById('admin-edit-fields');
+        editFields.style.display = 'block';
+        editFields.setAttribute('data-book-id', currentBookId);
 
-          document.getElementById('edit-title').value = book.title;
-          document.getElementById('edit-author').value = book.author;
-          document.getElementById('edit-genres').value = book.genres;
-          document.getElementById('edit-summary').value = book.summary || "";
-          document.getElementById('edit-description').value = book.description || "";
-        }
+        document.getElementById('edit-title').value = book.title;
+        document.getElementById('edit-author').value = book.author;
+        document.getElementById('edit-genres').value = book.genres;
+        document.getElementById('edit-description').value = book.description || "";
       }
-    } catch (err) {
-      console.error('Failed to load book details or user info:', err);
     }
+  } catch (err) {
+    console.error('Failed to load book details or user info:', err);
+  }
 
-    fetchRecommendations();
-    fetchReviews();
-  });
+  fetchRecommendations();
+  fetchReviews();
+});
 
+// Function to update like/dislike UI
   function updateLikeUI(likes, dislikes, activeAction) {
     document.getElementById('like-count').innerText = likes;
     document.getElementById('dislike-count').innerText = dislikes;
@@ -282,6 +278,7 @@
     return localStorage.getItem(`book-${bookId}-reaction`);
   }
 
+  // Handle like/dislike button clicks
   async function handleLikeDislike(bookId, action) {
     try {
       const res = await fetch(`${API_BASE_URL}/books/${bookId}/${action}`, { method: 'POST', credentials: 'include' });
@@ -307,6 +304,7 @@
     }
   }
 
+  // Function to sync like/dislike counts across pages
   function syncLikeDislikeAcrossPages(bookId, likes, dislikes, action) {
     const likeBtn = document.querySelector(`#book-${bookId} .like-button`);
     const dislikeBtn = document.querySelector(`#book-${bookId} .dislike-button`);
@@ -321,97 +319,107 @@
     }
   }
 
-  async function saveBookDetails() {
-    const adminEditFields = document.getElementById('admin-edit-fields');
-    const bookId = adminEditFields.getAttribute('data-book-id');
-    if (!bookId) {
-      alert('Book ID is missing!');
+  // Updated saveBookDetails function
+async function saveBookDetails() {
+  const adminEditFields = document.getElementById('admin-edit-fields');
+  const bookId = adminEditFields.getAttribute('data-book-id');
+  if (!bookId) {
+    alert('Book ID is missing!');
+    return;
+  }
+
+  const updatedDetails = {
+    title: document.getElementById('edit-title').value,
+    author: document.getElementById('edit-author').value,
+    genres: document.getElementById('edit-genres').value,
+    description: document.getElementById('edit-description').value,
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/books/${bookId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(updatedDetails),
+    });
+
+    if (response.ok) {
+      alert('Book details updated successfully.');
+      const updatedBook = await response.json();
+      document.getElementById('book-details-title').innerText = updatedBook.title;
+      document.getElementById('book-details-author').innerText = updatedBook.author;
+      document.getElementById('book-details-genres').innerText = updatedBook.genres;
+      document.getElementById('book-details-description').innerHTML = updatedBook.description;
+    } else {
+      alert('Failed to update book details.');
+    }
+  } catch (error) {
+    console.error('Error updating book details:', error);
+    alert('An error occurred while updating book details.');
+  }
+}
+
+  // Fetch and display recommendations
+async function fetchRecommendations() {
+  const container = document.querySelector('#recommendations-container');
+
+  // Show loading message immediately
+  container.innerHTML = `<p class="text-muted text-center">Loading recommendations...</p>`;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/recommendations?bookId=${currentBookId}`, { credentials: 'include' });
+    
+    if (!response.ok) {
+      container.innerHTML = `<p class="text-muted text-center">Login to see recommendations.</p>`;
       return;
     }
 
-    const updatedDetails = {
-      title: document.getElementById('edit-title').value,
-      author: document.getElementById('edit-author').value,
-      genres: document.getElementById('edit-genres').value,
-      summary: document.getElementById('edit-summary').value,
-      description: document.getElementById('edit-description').value,
-    };
+    const data = await response.json();
+    const recommendations = data.recommendations;
+    container.innerHTML = ""; // clear loading text
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/books/${bookId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(updatedDetails),
-      });
-
-      if (response.ok) {
-        alert('Book details updated successfully.');
-        const updatedBook = await response.json();
-        document.getElementById('book-details-title').innerText = updatedBook.title;
-        document.getElementById('book-details-author').innerText = updatedBook.author;
-        document.getElementById('book-details-genres').innerText = updatedBook.genres;
-        document.getElementById('book-details-summary').innerText = updatedBook.summary;
-      } else {
-        alert('Failed to update book details.');
-      }
-    } catch (error) {
-      console.error('Error updating book details:', error);
-      alert('An error occurred while updating book details.');
+    if (!recommendations || recommendations.length === 0) {
+      container.innerHTML = `<p class="text-muted text-center">No recommendations available at the moment.</p>`;
+      return;
     }
-  }
 
-  async function fetchRecommendations() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/recommendations?bookId=${currentBookId}`, { credentials: 'include' });
-      if (!response.ok) {
-        // If not authenticated, show a message
-        document.querySelector('#recommendations-container').innerHTML =
-          `<p class="text-muted text-center">Login to see recommendations.</p>`;
-        return;
-      }
-      const data = await response.json();
-      const recommendations = data.recommendations;
-      const container = document.querySelector('#recommendations-container');
-      container.innerHTML = "";
+    const row = document.createElement('div');
+    row.classList.add('row', 'g-4');
 
-      if (!recommendations || recommendations.length === 0) {
-        container.innerHTML = `<p class="text-muted text-center">No recommendations available at the moment.</p>`;
-        return;
+    recommendations.forEach(rec => {
+      let coverUrl = rec.cover;
+      if (coverUrl && coverUrl.startsWith('/uploads/')) {
+        coverUrl = API_BASE_URL + coverUrl;
       }
 
-      const row = document.createElement('div');
-      row.classList.add('row', 'g-4');
+      // ✅ Truncate description like the carousel version
+      const truncatedDescription = truncateText(rec.description || "No description available", 100);
 
-      recommendations.forEach(rec => {
-        let coverUrl = rec.cover;
-        if (coverUrl && coverUrl.startsWith('/uploads/')) {
-          coverUrl = API_BASE_URL + coverUrl;
-        }
-        row.innerHTML += `
-          <div class="col-md-3">
-            <div class="card h-100 shadow-sm">
-              <img src="${coverUrl}" class="card-img-top" alt="Book Cover">
-              <div class="card-body">
-                <h5 class="card-title">${rec.title}</h5>
-                <p class="card-text">${rec.description}</p>
-                <a href="book-details.html?bookId=${rec.id}" class="btn btn-success w-100 mt-2">
-                  <i class="fas fa-info-circle"></i> View
-                </a>
-              </div>
+      row.innerHTML += `
+        <div class="col-md-3">
+          <div class="card h-100 shadow-sm">
+            <img src="${coverUrl}" class="card-img-top" alt="Book Cover">
+            <div class="card-body">
+              <h5 class="card-title">${rec.title}</h5>
+              <p class="card-text">${truncatedDescription}</p>
+              <a href="book-details.html?bookId=${rec.id}" class="btn btn-success w-100 mt-2">
+                <i class="fas fa-info-circle"></i> View
+              </a>
             </div>
           </div>
-        `;
-      });
+        </div>
+      `;
+    });
 
-      container.appendChild(row);
-    } catch (error) {
-      document.querySelector('#recommendations-container').innerHTML =
-        `<p class="text-muted text-center">Login to see recommendations.</p>`;
-      console.error('Error fetching recommendations:', error);
-    }
+    container.appendChild(row);
+  } catch (error) {
+    container.innerHTML = `<p class="text-muted text-center">Login to see recommendations.</p>`;
+    console.error('Error fetching recommendations:', error);
   }
+}
 
+
+  // Fetch and display reviews
   async function fetchReviews() {
     try {
       const res = await fetch(`${API_BASE_URL}/books/${currentBookId}/reviews`);
@@ -450,6 +458,7 @@
     }
   }
 
+  // Submit a new review
   async function submitReview() {
   const text = document.getElementById('review-text').value.trim();
   const rating = parseInt(document.getElementById('review-rating').value);
@@ -482,7 +491,7 @@
   }
 }
 
-
+// Star rating system
     function setRating(value) {
   document.getElementById('review-rating').value = value;
   const stars = document.querySelectorAll('#rating-stars .star');
