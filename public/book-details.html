@@ -126,9 +126,6 @@
       <button onclick="submitReview()" class="btn btn-primary w-100">Submit Review</button>
     </div>
   </div>
-
-  <!-- Green line at the bottom -->
-  <!-- <hr style="border: 2px solid green; margin: 1rem 0;"> -->
 </section>
 
   <!-- Recommendations Section -->
@@ -146,9 +143,6 @@
     <hr style="border: 2px solid green; margin: 1rem 0;">
   </div>
 </section>
-
-<!-- Yellow line to separate recommendations and footer 
-<hr style="border: 2px solid yellow; margin: 2rem 0;">  -->
 
   <!-- Footer -->
   <footer class="footer mt-4" id="footer">
@@ -386,7 +380,7 @@ async function fetchRecommendations() {
     const row = document.createElement('div');
     row.classList.add('row', 'g-4');
 
-   recommendations.forEach(rec => {
+  recommendations.forEach(rec => {
   let coverUrl = rec.cover;
   if (coverUrl && coverUrl.startsWith('/uploads/')) {
     coverUrl = API_BASE_URL + coverUrl;
@@ -420,6 +414,21 @@ async function fetchRecommendations() {
   }
 }
 
+// Helper function to truncate text without cutting words
+function truncateText(text, maxLength = 100) {
+    if (!text || text.length <= maxLength) {
+        return text || '';
+    }
+    
+    let truncated = text.substring(0, maxLength);
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > maxLength * 0.8) {
+        truncated = truncated.substring(0, lastSpaceIndex);
+    }
+    
+    return truncated + '...';
+}
 
   // Fetch and display reviews
   async function fetchReviews() {
