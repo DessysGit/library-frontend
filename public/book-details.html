@@ -386,30 +386,32 @@ async function fetchRecommendations() {
     const row = document.createElement('div');
     row.classList.add('row', 'g-4');
 
-    recommendations.forEach(rec => {
-      let coverUrl = rec.cover;
-      if (coverUrl && coverUrl.startsWith('/uploads/')) {
-        coverUrl = API_BASE_URL + coverUrl;
-      }
+   recommendations.forEach(rec => {
+  let coverUrl = rec.cover;
+  if (coverUrl && coverUrl.startsWith('/uploads/')) {
+    coverUrl = API_BASE_URL + coverUrl;
+  }
 
-      // ✅ Truncate description like the carousel version
-      const truncatedDescription = truncateText(rec.description || "No description available", 100);
+  const truncatedDescription = truncateText(rec.description || "No description available", 100);
 
-      row.innerHTML += `
-        <div class="col-md-3">
-          <div class="card h-100 shadow-sm">
-            <img src="${coverUrl}" class="card-img-top" alt="Book Cover">
-            <div class="card-body">
-              <h5 class="card-title">${rec.title}</h5>
-              <p class="card-text">${truncatedDescription}</p>
-              <a href="book-details.html?bookId=${rec.id}" class="btn btn-success w-100 mt-2">
-                <i class="fas fa-info-circle"></i> View
-              </a>
-            </div>
-          </div>
+  row.innerHTML += `
+    <div class="col-md-3">
+      <div class="card">
+        <img src="${coverUrl || '/default-book-cover.png'}" 
+             class="card-img-top" 
+             alt="Book Cover"
+             onerror="this.src='/default-book-cover.png'">
+        <div class="card-body">
+          <h5 class="card-title">${rec.title}</h5>
+          <p class="card-text">${truncatedDescription}</p>
+          <a href="book-details.html?bookId=${rec.id}" class="btn w-100">
+            <i class="fas fa-info-circle"></i> View
+          </a>
         </div>
-      `;
-    });
+      </div>
+    </div>
+  `;
+});
 
     container.appendChild(row);
   } catch (error) {
