@@ -359,7 +359,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Continue with normal page initialization
     checkAuthStatus();
     setupOutsideClickListener();
-    fetchRecommendations();
 });
 
 // Function to handle logout
@@ -1569,58 +1568,9 @@ function deleteBookDetails() {
     }
 }
 
-// Function to fetch and display recommendations
-async function fetchRecommendations() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/recommendations`, { credentials: 'include' });
-        if (response.ok) {
-            const data = await response.json();
-            const recommendations = data.recommendations || [];
-            const recommendationsCarousel = document.querySelector('#recommendations-carousel .carousel-inner');
-
-            if (recommendationsCarousel) {
-                recommendationsCarousel.innerHTML = "";
-                recommendations.forEach((recommendation, index) => {
-                    const item = document.createElement('div');
-                    item.classList.add('carousel-item');
-                    if (index === 0) item.classList.add('active');
-
-                    // Fix: prepend API_BASE_URL if cover is a relative path
-                    let coverUrl = recommendation.cover;
-                    if (coverUrl && coverUrl.startsWith('/uploads/')) {
-                        coverUrl = API_BASE_URL + coverUrl;
-                    }
-
-                    // Truncate description for recommendations too
-                    const truncatedDescription = truncateText(recommendation.description, 100);
-
-                    item.innerHTML = `
-                        <div class="card">
-                            <img src="${coverUrl}" alt="${recommendation.title}">
-                            <div class="card-body">
-                                <h5 class="card-title">${recommendation.title}</h5>
-                                <p class="card-text" title="${recommendation.description}">${truncatedDescription}</p>
-                                <a href="book-details.html?bookId=${recommendation.id}" class="btn btn-success w-100 mt-2">
-                                    <i class="fas fa-info-circle"></i> View Details
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                    recommendationsCarousel.appendChild(item);
-                });
-            }
-        } else {
-            console.error('Failed to fetch recommendations:', await response.text());
-        }
-    } catch (error) {
-        console.error('Error fetching recommendations:', error);
-    }
-}
-
 // Call the necessary functions on page load
 document.addEventListener('DOMContentLoaded', () => {
     // Check initial auth status and handle burger menu
     checkAuthStatus();
     setupOutsideClickListener();
-    fetchRecommendations();
 });
