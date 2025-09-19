@@ -740,7 +740,7 @@ body {
     text-align: center;
 }
 
-/* Enhanced Description */
+/* Description */
 .book-description {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
@@ -882,7 +882,7 @@ body {
 }
 
 .admin-edit-panel .card-header {
-    background: linear-gradient(135deg, #ffc107, #ffca2c);
+    background: linear-gradient(135deg, #1DB954, #17a647);
     border-bottom: 2px solid rgba(0, 0, 0, 0.1);
     font-weight: 600;
 }
@@ -1011,7 +1011,7 @@ body {
     padding: 2rem;
 }
 
-/* Enhanced Rating Stars */
+/* Rating Stars */
 .rating-section {
     text-align: center;
     padding: 1rem 0;
@@ -1971,6 +1971,7 @@ a:focus,
 @media (max-width: 768px) {
     .book-cover {
         max-height: 300px;
+        width: fit-content;
     }
     
     .book-info-header .book-title {
@@ -2374,7 +2375,6 @@ a:focus,
 
 /* 
    Des2 Library
-   Version: 2.0
    
    Structure:
    1. Global Styles & Fonts
