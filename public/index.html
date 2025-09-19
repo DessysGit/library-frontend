@@ -21,17 +21,30 @@
     <button id="hamburger-button" class="hamburger" aria-label="Open navigation menu" onclick="toggleMenu()" style="display: none;">&#9776;</button>
 
     <!-- Sidebar menu -->
-    <div id="sidebar" class="sidebar">
-        <a href="javascript:void(0)" class="closebtn" onclick="toggleMenu()">&times;</a>
-        <div class="sidebar-header">
-            <img id="burger-profile-picture" src="" alt="Profile Picture" loading="lazy" style="width: 80px; height: 80px; border-radius: 50%;">
-            <p id="burger-username">Username</p>
-        </div>
-        <a href="javascript:void(0)" onclick="showSection('profile-section')">User Profile</a>
-        <a href="javascript:void(0)" onclick="showSection('admin-section')" id="manage-users-link" style="display: none;">Manage Users</a>
-        <a href="javascript:void(0)" onclick="showSection('add-book-section')" id="add-book-link" style="display: none;">Add Book</a>
-        <a href="javascript:void(0)" onclick="logout()">Logout</a>
+<div id="sidebar" class="sidebar">
+    <a href="javascript:void(0)" class="closebtn" onclick="toggleMenu()">&times;</a>
+    <div class="sidebar-header">
+        <img id="burger-profile-picture" src="" alt="Profile Picture" loading="lazy" style="width: 80px; height: 80px; border-radius: 50%;">
+        <p id="burger-username">Username</p>
     </div>
+    
+    <!-- Admin Edit Controls in Sidebar -->
+    <div id="sidebar-admin-controls" style="display: none;">
+        <hr class="bg-light my-3">
+        <h6 class="text-warning px-3 mb-2">
+            <i class="fas fa-tools"></i> Admin Tools
+        </h6>
+        <a href="javascript:void(0)" onclick="showSection('admin-section')" id="manage-users-link">
+            <i class="fas fa-users"></i> Manage Users
+        </a>
+        <a href="javascript:void(0)" onclick="showSection('add-book-section')" id="add-book-link">
+            <i class="fas fa-book"></i> Add Book
+        </a>
+    </div>
+    
+    <a href="javascript:void(0)" onclick="showSection('profile-section')">User Profile</a>
+    <a href="javascript:void(0)" onclick="logout()">Logout</a>
+</div>
 
     <!-- Main Content -->
     <div class="container mt-5">

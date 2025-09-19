@@ -196,9 +196,6 @@ async function login() {
             // Hide login forms and show main app
             const hamburgerButton = document.getElementById('hamburger-button');
             const searchBooksSection = document.getElementById('search-books');
-            const manageUsersLink = document.getElementById('manage-users-link');
-            const addBookLink = document.getElementById('add-book-link');
-            const adminButton = document.getElementById('admin-button');
             const loginForm = document.getElementById('login-form');
             const registerForm = document.getElementById('register-form');
             const resendModal = document.getElementById('resend-verification-modal');
@@ -218,10 +215,20 @@ async function login() {
             if (mainContent) mainContent.style.display = 'block';
             if (footer) footer.style.display = 'block';
 
+            // Handle admin controls - UPDATED LOGIC
             if (userRole === 'admin') {
-                if (manageUsersLink) manageUsersLink.style.display = 'block';
+                // Show the admin controls container
+                const sidebarAdminControls = document.getElementById('sidebar-admin-controls');
+                if (sidebarAdminControls) {
+                    sidebarAdminControls.style.display = 'block';
+                }
+                
+                // Show individual admin links
+                const addBookLink = document.getElementById('add-book-link');
+                const manageUsersLink = document.getElementById('manage-users-link');
+                
                 if (addBookLink) addBookLink.style.display = 'block';
-                if (adminButton) adminButton.style.display = 'block';
+                if (manageUsersLink) manageUsersLink.style.display = 'block';
             }
 
             // Update sidebar with user info
@@ -1342,13 +1349,10 @@ async function checkAuthStatus() {
             const loginForm = document.getElementById('login-form');
             const mainContent = document.getElementById('main-content');
             const newsletterSection = document.getElementById('newsletter-section');
-            const addBookLink = document.getElementById('add-book-link');
             const hamburgerButton = document.getElementById('hamburger-button');
             const searchBooksSection = document.getElementById('search-books');
             const footer = document.getElementById('footer');
-            const adminButton = document.getElementById('admin-button');
             const profileSection = document.getElementById('profile-section');
-            const manageUsersLink = document.getElementById('manage-users-link');
             const addBookSection = document.getElementById('add-book-section');
             const burgerUsername = document.getElementById('burger-username');
 
@@ -1363,7 +1367,6 @@ async function checkAuthStatus() {
             // Hide other sections by default
             if (addBookSection) addBookSection.style.display = 'none';
             if (profileSection) profileSection.style.display = 'none';
-            if (manageUsersLink) manageUsersLink.style.display = 'none';
 
             // Update sidebar with user info
             if (burgerUsername) burgerUsername.innerText = user.username;
@@ -1373,11 +1376,24 @@ async function checkAuthStatus() {
 
             // Handle admin-specific UI elements
             if (userRole === 'admin') {
+                // Show the admin controls container
+                const sidebarAdminControls = document.getElementById('sidebar-admin-controls');
+                if (sidebarAdminControls) {
+                    sidebarAdminControls.style.display = 'block';
+                }
+                
+                // Show individual admin links
+                const addBookLink = document.getElementById('add-book-link');
+                const manageUsersLink = document.getElementById('manage-users-link');
+                
                 if (addBookLink) addBookLink.style.display = 'block';
                 if (manageUsersLink) manageUsersLink.style.display = 'block';
-                if (adminButton) adminButton.style.display = 'block';
             } else {
-                if (addBookLink) addBookLink.style.display = 'none';
+                // Hide admin controls for non-admin users
+                const sidebarAdminControls = document.getElementById('sidebar-admin-controls');
+                if (sidebarAdminControls) {
+                    sidebarAdminControls.style.display = 'none';
+                }
             }
 
             const chatIcon = document.getElementById('chat-icon');
