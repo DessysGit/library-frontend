@@ -820,7 +820,27 @@ function toggleAdvancedFilters() {
   }
   
 
-// Add loading spinner functions
+  // Function to show loading spinner on button
+function showButtonSpinner(buttonElement, originalText) {
+    buttonElement.disabled = true;
+    buttonElement.classList.add('loading');
+    buttonElement.setAttribute('data-original-text', originalText);
+    buttonElement.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        Processing...
+    `;
+}
+
+// Function to hide loading spinner on button
+function hideButtonSpinner(buttonElement) {
+    buttonElement.disabled = false;
+    buttonElement.classList.remove('loading');
+    const originalText = buttonElement.getAttribute('data-original-text') || 'Submit';
+    buttonElement.innerHTML = originalText;
+    buttonElement.removeAttribute('data-original-text');
+}
+
+// Functions to show/hide a global loading spinner
 function showLoadingSpinner() {
     const spinner = document.getElementById('loading-spinner');
     if (spinner) spinner.style.display = 'block';
@@ -1191,7 +1211,85 @@ function showRegisterForm() {
     
     // Clear messages
     document.getElementById('register-messages').innerHTML = '';
+    
+    // Initialize password strength after form is shown
+    setTimeout(initializePasswordStrength, 100);
 }
+
+// Password strength indicator functionality
+function initializePasswordStrength() {
+    const passwordInput = document.getElementById('register-password');
+    const strengthContainer = passwordInput?.parentElement.querySelector('.password-strength');
+    const strengthBar = strengthContainer?.querySelector('.password-strength-bar');
+
+    if (!passwordInput || !strengthContainer || !strengthBar) {
+        console.log('Password strength elements not found');
+        return;
+    }
+
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        const strength = calculatePasswordStrength(password);
+        updatePasswordStrengthUI(strengthContainer, strengthBar, strength);
+    });
+}
+
+function calculatePasswordStrength(password) {
+    if (!password) return { level: 'none', score: 0 };
+
+    let score = 0;
+    let feedback = [];
+
+    // Length check
+    if (password.length >= 6) score += 1;
+    if (password.length >= 8) score += 1;
+    if (password.length >= 12) score += 1;
+
+    // Character variety checks
+    if (/[a-z]/.test(password)) score += 1; // lowercase
+    if (/[A-Z]/.test(password)) score += 1; // uppercase  
+    if (/[0-9]/.test(password)) score += 1; // numbers
+    if (/[^a-zA-Z0-9]/.test(password)) score += 1; // special characters
+
+    // Determine strength level
+    let level = 'weak';
+    if (score >= 5) {
+        level = 'strong';
+    } else if (score >= 3) {
+        level = 'medium';
+    }
+
+    return { level, score };
+}
+
+function updatePasswordStrengthUI(container, bar, strength) {
+    // Remove existing strength classes
+    container.classList.remove('password-strength-weak', 'password-strength-medium', 'password-strength-strong');
+    
+    // Add appropriate class based on strength
+    if (strength.level !== 'none') {
+        container.classList.add(`password-strength-${strength.level}`);
+    }
+
+    // Update the visual bar
+    const widthPercentage = Math.min((strength.score / 7) * 100, 100);
+    bar.style.width = `${widthPercentage}%`;
+    
+    // Optional: Add color changes
+    if (strength.level === 'weak') {
+        bar.style.backgroundColor = '#dc3545';
+    } else if (strength.level === 'medium') {
+        bar.style.backgroundColor = '#ffc107';
+    } else if (strength.level === 'strong') {
+        bar.style.backgroundColor = '#28a745';
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Add a small delay to ensure all elements are rendered
+    setTimeout(initializePasswordStrength, 100);
+});
 
 // Add enter key support for forms
 document.addEventListener('DOMContentLoaded', () => {
