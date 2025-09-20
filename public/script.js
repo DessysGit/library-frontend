@@ -132,7 +132,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupOutsideClickListener();
 });
 
-// Add these loading state functions to script.js:
+// Function to show loading spinner on button
+function showButtonSpinner(buttonElement, originalText) {
+    buttonElement.disabled = true;
+    buttonElement.classList.add('loading');
+    buttonElement.setAttribute('data-original-text', originalText);
+    buttonElement.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        Processing...
+    `;
+}
+
+// Function to hide loading spinner on button
+function hideButtonSpinner(buttonElement) {
+    buttonElement.disabled = false;
+    buttonElement.classList.remove('loading');
+    const originalText = buttonElement.getAttribute('data-original-text') || 'Submit';
+    buttonElement.innerHTML = originalText;
+    buttonElement.removeAttribute('data-original-text');
+}
+
+// Function to show loading state overlay
 function showLoadingState() {
     // Create or show loading overlay
     let loadingOverlay = document.getElementById('loading-overlay');
@@ -150,6 +170,7 @@ function showLoadingState() {
     loadingOverlay.style.display = 'flex';
 }
 
+// Function to hide loading state overlay
 function hideLoadingState() {
     const loadingOverlay = document.getElementById('loading-overlay');
     if (loadingOverlay) {
@@ -167,6 +188,7 @@ function isUserLoggedIn() {
 async function login() {
     const emailOrUsername = document.getElementById('login-email-username').value.trim();
     const password = document.getElementById('login-password').value;
+    const loginButton = document.querySelector('#login-form .btn-primary');
 
     // Clear previous messages
     document.getElementById('login-messages').innerHTML = '';
@@ -175,6 +197,9 @@ async function login() {
         displayMessage('login-messages', 'Please fill in all fields', 'error');
         return;
     }
+
+    // Show spinner immediately
+    showButtonSpinner(loginButton, 'Sign In');
 
     try {
         const response = await fetch(`${API_BASE_URL}/login`, {
@@ -215,15 +240,13 @@ async function login() {
             if (mainContent) mainContent.style.display = 'block';
             if (footer) footer.style.display = 'block';
 
-            // Handle admin controls - UPDATED LOGIC
+            // Handle admin controls
             if (userRole === 'admin') {
-                // Show the admin controls container
                 const sidebarAdminControls = document.getElementById('sidebar-admin-controls');
                 if (sidebarAdminControls) {
                     sidebarAdminControls.style.display = 'block';
                 }
                 
-                // Show individual admin links
                 const addBookLink = document.getElementById('add-book-link');
                 const manageUsersLink = document.getElementById('manage-users-link');
                 
@@ -269,8 +292,12 @@ async function login() {
     } catch (error) {
         console.error('Login error:', error);
         displayMessage('login-messages', 'Network error. Please try again.', 'error');
+    } finally {
+        // Always hide spinner
+        hideButtonSpinner(loginButton);
     }
 }
+
 
 // Show resend verification form
 function showResendVerification() {
@@ -302,6 +329,7 @@ function hideResendVerification() {
 // Resend verification email
 async function resendVerification() {
     const email = document.getElementById('resend-email').value.trim();
+    const resendButton = document.querySelector('#resend-verification-modal .btn-success');
     
     // Clear previous messages
     document.getElementById('resend-messages').innerHTML = '';
@@ -315,6 +343,9 @@ async function resendVerification() {
         displayMessage('resend-messages', 'Please enter a valid email address', 'error');
         return;
     }
+
+    // Show spinner immediately
+    showButtonSpinner(resendButton, 'Resend Verification');
 
     try {
         const response = await fetch(`${API_BASE_URL}/resend-verification`, {
@@ -349,8 +380,12 @@ async function resendVerification() {
     } catch (error) {
         console.error('Resend verification error:', error);
         displayMessage('resend-messages', 'Network error. Please try again.', 'error');
+    } finally {
+        // Always hide spinner
+        hideButtonSpinner(resendButton);
     }
 }
+
 // Check if we're on the email verification page
 document.addEventListener('DOMContentLoaded', () => {
     // Check if this is a verification page load
@@ -1021,6 +1056,7 @@ async function register() {
     const username = document.getElementById('register-username').value.trim();
     const password = document.getElementById('register-password').value;
     const confirmPassword = document.getElementById('register-confirm-password').value;
+    const registerButton = document.querySelector('#register-form .btn-primary');
 
     // Clear previous messages
     document.getElementById('register-messages').innerHTML = '';
@@ -1056,6 +1092,9 @@ async function register() {
         displayMessage('register-messages', errors.join('<br>'), 'error');
         return;
     }
+
+    // Show spinner immediately
+    showButtonSpinner(registerButton, 'Create Account');
 
     try {
         const response = await fetch(`${API_BASE_URL}/register`, {
@@ -1100,6 +1139,9 @@ async function register() {
     } catch (error) {
         console.error('Registration error:', error);
         displayMessage('register-messages', 'Network error. Please try again.', 'error');
+    } finally {
+        // Always hide spinner
+        hideButtonSpinner(registerButton);
     }
 }
 
