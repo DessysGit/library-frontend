@@ -276,6 +276,7 @@
   <script>
     let currentBookId = null;
     let isEditMode = false;
+    let currentUserProfile = null; // Store current user profile for review fallback
 
     document.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
@@ -327,6 +328,16 @@
         }
       } catch (err) {
         console.error('Failed to load book details:', err);
+      }
+
+      // Fetch current user profile for review fallback
+      try {
+        const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
+        if (userRes.ok) {
+          currentUserProfile = await userRes.json();
+        }
+      } catch (err) {
+        currentUserProfile = null;
       }
 
       fetchRecommendations();
@@ -575,76 +586,192 @@
     }
 
     // Fetch and display reviews
-    async function fetchReviews() {
-      try {
+   async function fetchReviews() {
+    try {
         const res = await fetch(`${API_BASE_URL}/books/${currentBookId}/reviews`);
-        if (!res.ok) throw new Error('Failed to fetch reviews');
+        
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Failed to fetch reviews: ${res.status} - ${errorText}`);
+        }
+        
         const reviews = await res.json();
-
         const container = document.getElementById('reviews-container');
         container.innerHTML = "";
 
         if (reviews.length === 0) {
-          container.innerHTML = `<p class="text-muted text-center">No reviews yet. Be the first to review this book!</p>`;
-          return;
+            container.innerHTML = `<p class="text-muted text-center">No reviews yet. Be the first to review this book!</p>`;
+            return;
         }
 
-        reviews.forEach(review => {
-          let profilePic = review.profilePicture || '/default-profile.png';
-          if (profilePic && profilePic.startsWith('/uploads/')) {
-              profilePic = API_BASE_URL + profilePic;
-          }
-          const card = document.createElement('div');
-          card.classList.add('card', 'mb-3');
-          card.innerHTML = `
-          <div class="card-body d-flex align-items-start">
-              <img src="${profilePic}" alt="Profile Picture" class="rounded-circle mr-3" style="width: 50px; height: 50px;">
-              <div>
-                  <p class="mb-1">${'⭐'.repeat(review.rating || 0)}</p>
-                  <p class="card-text">${review.text}</p>
-                  <p class="text-muted small">- ${review.username}</p>
-              </div>
-          </div>
-      `;
-          container.appendChild(card);
+        // Ensure we have current user profile for fallback
+        if (!currentUserProfile) {
+            try {
+                const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
+                if (userRes.ok) {
+                    currentUserProfile = await userRes.json();
+                }
+            } catch (err) {
+                // ignore profile fetch errors
+            }
+        }
+
+        reviews.forEach((review, idx) => {
+            let profilePic = review.profilepicture || '/default-profile.png';
+            let username = review.username || 'Anonymous';
+
+            // Handle profile picture URL construction
+            if (profilePic && profilePic !== '/default-profile.png' && profilePic !== '') {
+                if (profilePic.startsWith('/uploads/')) {
+                    profilePic = API_BASE_URL + profilePic;
+                }
+            }
+
+            // Special handling for recent reviews with missing profile pics
+            const isRecentReview = idx === 0; // Since we order by id DESC
+            if (isRecentReview && (!review.profilepicture || review.profilepicture === '') && currentUserProfile) {
+                if (currentUserProfile.profilePicture) {
+                    profilePic = currentUserProfile.profilePicture.startsWith('/uploads/')
+                        ? API_BASE_URL + currentUserProfile.profilePicture
+                        : currentUserProfile.profilePicture;
+                }
+                username = currentUserProfile.username || username;
+            }
+
+            const card = document.createElement('div');
+            card.classList.add('card', 'mb-3');
+            card.innerHTML = `
+                <div class="card-body d-flex align-items-start">
+                    <img src="${profilePic}" 
+                         alt="Profile Picture" 
+                         class="rounded-circle mr-3" 
+                         style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #ddd;" 
+                         onerror="this.src='/default-profile.png';">
+                    <div class="flex-grow-1">
+                        <div class="mb-1">
+                            <span class="text-warning">${'⭐'.repeat(review.rating || 0)}</span>
+                            <span class="text-muted ml-2">${review.rating}/5</span>
+                        </div>
+                        <p class="card-text mb-2">${review.text}</p>
+                        <p class="text-muted small mb-0">- ${username}</p>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
         });
-      } catch (err) {
+    } catch (err) {
         console.error('Error fetching reviews:', err);
-      }
+        const container = document.getElementById('reviews-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="alert alert-danger text-center">
+                    <strong>Failed to load reviews</strong><br>
+                    <small>${err.message}</small><br>
+                    <button class="btn btn-sm btn-outline-danger mt-2" onclick="fetchReviews()">
+                        Try Again
+                    </button>
+                </div>
+            `;
+        }
     }
+}
+
+
 
     // Submit a new review
     async function submitReview() {
-      const text = document.getElementById('review-text').value.trim();
-      const rating = parseInt(document.getElementById('review-rating').value);
+    const text = document.getElementById('review-text').value.trim();
+    const rating = parseInt(document.getElementById('review-rating').value);
 
-      if (!text || rating < 1 || rating > 5) {
-        return alert('Please write a review and choose a rating.');
-      }
+    if (!text || rating < 1 || rating > 5) {
+        alert('Please write a review and choose a rating (1-5 stars).');
+        return;
+    }
 
-      try {
+    const submitButton = document.querySelector('#review-section button');
+    const originalText = submitButton.innerHTML;
+    
+    try {
+        // Show loading state
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+
+        console.log('Submitting review:', { text: text.substring(0, 50) + '...', rating });
+
         const res = await fetch(`${API_BASE_URL}/books/${currentBookId}/reviews`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ text, rating }),
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ text, rating }),
         });
 
-        if (!res.ok) throw new Error('Failed to submit review');
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+            throw new Error(errorData.error || 'Failed to submit review');
+        }
+
         const data = await res.json();
-        alert('Review submitted successfully!');
+        console.log('Review submitted successfully:', data);
 
-        // Update the average rating on the page
-        document.getElementById('book-details-average-rating').innerText = (data.averageRating || 0).toFixed(1);
+        // Update the average rating display
+        const avgRatingElement = document.getElementById('book-details-average-rating');
+        if (avgRatingElement && data.averageRating) {
+            avgRatingElement.innerText = data.averageRating.toFixed(1);
+        }
 
+        // Clear form
         document.getElementById('review-text').value = '';
-        setRating(0); // Reset stars
-        fetchReviews();
-      } catch (err) {
+        setRating(0);
+
+        // Ensure we have current user profile before refreshing reviews
+        if (!currentUserProfile) {
+            try {
+                const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
+                if (userRes.ok) {
+                    currentUserProfile = await userRes.json();
+                }
+            } catch (err) {
+                console.log('Could not fetch user profile after review submission');
+            }
+        }
+
+        // Small delay to ensure database consistency, then refresh reviews
+        setTimeout(() => {
+            fetchReviews();
+        }, 500);
+
+        // Success message
+        const successDiv = document.createElement('div');
+        successDiv.className = 'alert alert-success mt-3';
+        successDiv.innerHTML = '<strong>Review submitted successfully!</strong> Thank you for your feedback.';
+        document.querySelector('#review-section .card-body').appendChild(successDiv);
+        
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.parentNode.removeChild(successDiv);
+            }
+        }, 3000);
+
+    } catch (err) {
         console.error('Error submitting review:', err);
-        alert('Failed to submit review.');
-      }
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'alert alert-danger mt-3';
+        errorDiv.innerHTML = `<strong>Failed to submit review:</strong> ${err.message}`;
+        document.querySelector('#review-section .card-body').appendChild(errorDiv);
+        
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 5000);
+        
+    } finally {
+        // Reset button
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
     }
+}
 
     // Star rating system
     function setRating(value) {

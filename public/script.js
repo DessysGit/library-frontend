@@ -6,20 +6,17 @@ const API_BASE_URL = (() => {
   
   if (isLocalhost) {
     // Local development
-    console.log('🔧 Running in LOCAL development mode');
     return ''; // Same origin for local development
   } else if (isNetlify || window.location.protocol === 'https:') {
     // Production (Netlify or any HTTPS site)
     console.log('🌐 Running in PRODUCTION mode');
     return 'https://library-backend-j90e.onrender.com';
   } else {
-    // Fallback
-    console.log('⚠️ Unknown environment, using production backend');
+    // Fallback to Render for HTTP sites
     return 'https://library-backend-j90e.onrender.com';
   }
 })();
 
-console.log(`📡 API Base URL: ${API_BASE_URL || 'Same Origin'}`);
 
 // Define the seed admin username
 const seedAdminUsername = 'admin';
@@ -28,9 +25,7 @@ const seedAdminUsername = 'admin';
 let userRole = "";
 
 // Ensure the necessary elements are hidden on initial load
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM Content Loaded - Starting initialization...');
-    
+document.addEventListener('DOMContentLoaded', async () => {    
     // Show loading state initially
     showLoadingState();
     
@@ -70,7 +65,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         let isAuthenticated = false;
         try {
             isAuthenticated = await Promise.race([authCheckPromise, timeoutPromise]);
-            console.log('Auth check completed:', isAuthenticated);
         } catch (error) {
             console.error('Auth check failed or timed out:', error);
             isAuthenticated = false;
@@ -80,7 +74,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         hideLoadingState();
         
         if (isAuthenticated) {
-            console.log('User is authenticated - showing main app');
             // User is authenticated - show main app
             if (hamburgerButton) hamburgerButton.style.display = 'block';
             if (searchBooksSection) searchBooksSection.style.display = 'block';
@@ -94,7 +87,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (titleInput) {
                 try {
                     await fetchBooks();
-                    console.log('Books fetched successfully');
                 } catch (error) {
                     console.error('Error fetching books:', error);
                 }
@@ -113,8 +105,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (registerForm) registerForm.style.display = 'none';
             if (chatIcon) chatIcon.style.display = 'none';
         }
-        
-        console.log('Initialization completed successfully');
         
     } catch (error) {
         console.error('Critical error during initialization:', error);
@@ -667,7 +657,6 @@ async function fetchBooks(query = "", page = 1) {
     if (searchingMsg) searchingMsg.style.display = 'block';
 
     try {
-        console.log('Fetching books with query:', searchQuery);
         showLoadingSpinner();
         
         const response = await fetch(`${API_BASE_URL}/books?${searchQuery}`, {
@@ -682,7 +671,6 @@ async function fetchBooks(query = "", page = 1) {
         }
         
         const data = await response.json();
-        console.log('Books data received:', data.books?.length || 0, 'books');
         
         const books = data.books || [];
         const totalBooks = data.total || 0;
@@ -1287,8 +1275,10 @@ function updatePasswordStrengthUI(container, bar, strength) {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Add a small delay to ensure all elements are rendered
-    setTimeout(initializePasswordStrength, 100);
+    // Only initialize password strength if register form exists
+    if (document.getElementById('register-form')) {
+        setTimeout(initializePasswordStrength, 100);
+    }
 });
 
 // Add enter key support for forms
@@ -1723,6 +1713,8 @@ function deleteBookDetails() {
             });
     }
 }
+
+
 
 // Call the necessary functions on page load
 document.addEventListener('DOMContentLoaded', () => {
