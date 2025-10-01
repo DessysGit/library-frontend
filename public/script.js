@@ -1714,7 +1714,99 @@ function deleteBookDetails() {
     }
 }
 
+// Show forgot password form
+function showForgotPasswordForm() {
+    const loginForm = document.getElementById('login-form');
+    const forgotPasswordModal = document.getElementById('forgot-password-modal');
+    
+    if (loginForm) loginForm.style.display = 'none';
+    if (forgotPasswordModal) forgotPasswordModal.style.display = 'block';
+    
+    // Clear previous messages
+    document.getElementById('forgot-password-messages').innerHTML = '';
+}
 
+// Hide forgot password form
+function hideForgotPasswordForm() {
+    const forgotPasswordModal = document.getElementById('forgot-password-modal');
+    const loginForm = document.getElementById('login-form');
+    
+    if (forgotPasswordModal) forgotPasswordModal.style.display = 'none';
+    if (loginForm) loginForm.style.display = 'block';
+    
+    // Clear form and messages
+    document.getElementById('forgot-password-email').value = '';
+    document.getElementById('forgot-password-messages').innerHTML = '';
+}
+
+// Request password reset
+async function requestPasswordReset() {
+    const email = document.getElementById('forgot-password-email').value.trim();
+    const resetButton = document.querySelector('#forgot-password-modal .btn-danger');
+    
+    // Clear previous messages
+    document.getElementById('forgot-password-messages').innerHTML = '';
+
+    if (!email) {
+        displayMessage('forgot-password-messages', 'Email is required', 'error');
+        return;
+    }
+
+    if (!isValidEmail(email)) {
+        displayMessage('forgot-password-messages', 'Please enter a valid email address', 'error');
+        return;
+    }
+
+    // Show spinner
+    showButtonSpinner(resetButton, 'Send Reset Link');
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/request-password-reset`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            displayMessage('forgot-password-messages', data.message, 'success');
+            document.getElementById('forgot-password-email').value = '';
+            
+            // Show additional helpful message
+            setTimeout(() => {
+                displayMessage('forgot-password-messages', 
+                    data.message + '<br><br><strong>Next steps:</strong><br>• Check your email inbox (and spam folder)<br>• Click the reset link within 1 hour<br>• Create a new password', 
+                    'success'
+                );
+            }, 1500);
+            
+            // Automatically return to login after 6 seconds
+            setTimeout(() => {
+                hideForgotPasswordForm();
+                displayMessage('login-messages', 'Password reset email sent! Please check your email.', 'info');
+            }, 6000);
+            
+        } else {
+            displayMessage('forgot-password-messages', data.message || data.error || 'Failed to send reset email', 'error');
+        }
+    } catch (error) {
+        console.error('Password reset request error:', error);
+        displayMessage('forgot-password-messages', 'Network error. Please try again.', 'error');
+    } finally {
+        hideButtonSpinner(resetButton);
+    }
+}
+
+// Add enter key support for forgot password form
+document.addEventListener('DOMContentLoaded', () => {
+    const forgotPasswordEmail = document.getElementById('forgot-password-email');
+    if (forgotPasswordEmail) {
+        forgotPasswordEmail.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') requestPasswordReset();
+        });
+    }
+});
 
 // Call the necessary functions on page load
 document.addEventListener('DOMContentLoaded', () => {

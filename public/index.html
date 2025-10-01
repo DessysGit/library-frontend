@@ -104,6 +104,11 @@
             <div class="form-group">
                 <label for="login-password">Password</label>
                 <input type="password" id="login-password" class="form-control" placeholder="Enter password">
+                <small class="mt-1">
+                    <a href="#" onclick="showForgotPasswordForm(); return false;" class="text-warning">
+                        Forgot your password?
+                    </a>
+                </small>
             </div>
             
             <button onclick="login()" class="btn btn-primary mb-3">Sign In</button>
@@ -131,6 +136,28 @@
             <button onclick="resendVerification()" class="btn btn-success mb-2">Resend Verification</button>
             <button onclick="hideResendVerification()" class="btn btn-secondary">Cancel</button>
             <div id="resend-messages" class="mt-2"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div id="forgot-password-modal" class="mt-4" style="display: none;">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-key text-warning"></i> Forgot Password
+            </h2>
+            <p class="text-muted mb-4">Enter your email address and we'll send you a link to reset your password.</p>
+            
+            <div class="form-group">
+                <label for="forgot-password-email">Email Address</label>
+                <input type="email" id="forgot-password-email" class="form-control" placeholder="your@email.com" required>
+                <small class="text-muted">We'll send a password reset link to this email</small>
+            </div>
+            
+            <button onclick="requestPasswordReset()" class="btn btn-danger mb-2">Send Reset Link</button>
+            <button onclick="hideForgotPasswordForm()" class="btn btn-secondary">Cancel</button>
+            <div id="forgot-password-messages" class="mt-2"></div>
         </div>
     </div>
 </div>
