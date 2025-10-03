@@ -530,6 +530,8 @@ function toggleMenu() {
     sidebar.classList.toggle('active');
 
     if (sidebar.classList.contains('active')) {
+        // ADD THIS LINE - Refresh profile picture when sidebar opens
+        refreshProfilePicture();
         document.addEventListener('click', closeMenuOnClickOutside);
     } else {
         document.removeEventListener('click', closeMenuOnClickOutside);
@@ -940,7 +942,7 @@ async function addBook() {
     if (bookFile) formData.append('bookFile', bookFile);
 
     try {
-        const response = await fetch(`${API_BASE_URL}/addBook`, { 
+        const response = await fetch(`${API_BASE_URL}/books`, { 
             method: 'POST', 
             body: formData, 
             credentials: 'include' 
@@ -1344,7 +1346,7 @@ async function updateProfile() {
     const favoriteAuthors = document.getElementById('profile-authors').value;
     const favoriteBooks = document.getElementById('profile-books').value;
 
-    const response = await fetch(`${API_BASE_URL}/updateProfile`, {
+    const response = await fetch(`${API_BASE_URL}/users/updateProfile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, favoriteGenres, favoriteAuthors, favoriteBooks })
@@ -1368,7 +1370,7 @@ async function uploadProfilePicture() {
         formData.append('profilePicture', fileInput.files[0]);
         
         try {
-            const response = await fetch(`${API_BASE_URL}/upload-profile-picture`, {
+            const response = await fetch(`${API_BASE_URL}/users/upload-profile-picture`, {
                 method: 'POST',
                 body: formData,
                 credentials: 'include'
@@ -1410,28 +1412,73 @@ if (profilePictureInput) {
 
 // function to refresh profile picture from database
 async function refreshProfilePicture() {
+    // Default SVG image for users without profile pictures
+    const defaultImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23444" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23fff" font-size="32" font-family="Arial"%3E👤%3C/text%3E%3C/svg%3E';
+
     try {
-        const response = await fetch(`${API_BASE_URL}/profile`, { credentials: 'include' });
+        const response = await fetch(`${API_BASE_URL}/users/profile`, { credentials: 'include' });
         if (response.ok) {
             const user = await response.json();
-            if (user.profilePicture) {
-                const timestamp = '?timestamp=' + new Date().getTime();
-                const profilePic = document.getElementById('profile-picture');
-                const burgerProfilePic = document.getElementById('burger-profile-picture');
-                
-                if (profilePic) profilePic.src = user.profilePicture + timestamp;
-                if (burgerProfilePic) burgerProfilePic.src = user.profilePicture + timestamp;
+
+            // Use default if no profile picture
+            let profilePictureUrl = user.profilePicture || defaultImage;
+
+            // Add timestamp to prevent caching
+            const timestamp = '?t=' + new Date().getTime();
+
+            // Handle relative URLs (local uploads)
+            if (profilePictureUrl && profilePictureUrl.startsWith('/uploads/')) {
+                profilePictureUrl = API_BASE_URL + profilePictureUrl;
             }
+
+            const profilePic = document.getElementById('profile-picture');
+            const burgerProfilePic = document.getElementById('burger-profile-picture');
+
+            // Update both profile pictures
+            if (profilePic) {
+                profilePic.src = profilePictureUrl.includes('data:') ? profilePictureUrl : profilePictureUrl + timestamp;
+                profilePic.onerror = function() {
+                    this.src = defaultImage;
+                    console.log('Failed to load profile picture, using default');
+                };
+            }
+
+            if (burgerProfilePic) {
+                burgerProfilePic.src = profilePictureUrl.includes('data:') ? profilePictureUrl : profilePictureUrl + timestamp;
+                burgerProfilePic.onerror = function() {
+                    this.src = defaultImage;
+                    console.log('Failed to load sidebar profile picture, using default');
+                };
+            }
+
+        } else {
+            console.warn('Failed to fetch profile, using default image');
+            setDefaultProfilePictures();
         }
     } catch (error) {
         console.error('Error refreshing profile picture:', error);
+        setDefaultProfilePictures();
     }
+}
+
+// Helper function to set default profile pictures
+function setDefaultProfilePictures() {
+    const defaultImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23444" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23fff" font-size="32" font-family="Arial"%3E👤%3C/text%3E%3C/svg%3E';
+    const defaultImageLarge = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="120"%3E%3Crect fill="%23444" width="120" height="120"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23fff" font-size="48" font-family="Arial"%3E👤%3C/text%3E%3C/svg%3E';
+
+    const profilePic = document.getElementById('profile-picture');
+    const burgerProfilePic = document.getElementById('burger-profile-picture');
+
+    if (profilePic) profilePic.src = defaultImageLarge;
+    if (burgerProfilePic) burgerProfilePic.src = defaultImage;
+
+    console.log('Set default profile pictures');
 }
 
 // Function to fetch user profile and display it
 async function fetchProfile() {
     try {
-        const response = await fetch(`${API_BASE_URL}/profile`, { credentials: 'include' });
+        const response = await fetch(`${API_BASE_URL}/users/profile`, { credentials: 'include' });
         if (response.ok) {
             const user = await response.json();
             
