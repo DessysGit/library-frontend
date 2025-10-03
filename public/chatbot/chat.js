@@ -7,8 +7,10 @@ function toggleChatbox() {
     const input = document.getElementById('user-input');
     const message = input.value.trim();
     if (!message) return;
-  
-    appendMessage('You', message);
+
+    // Use window.currentUsername if available, fallback to "You"
+    const senderName = window.currentUsername || "You";
+    appendMessage(senderName, message);
     input.value = '';
   
     try {
@@ -19,9 +21,9 @@ function toggleChatbox() {
       });
   
       const data = await response.json();
-      appendMessage('AI', data.reply);
+      appendMessage('LibBot', data.reply);
     } catch (error) {
-      appendMessage('AI', 'Error: could not reach AI server.');
+      appendMessage('LibBot', 'Error: could not reach AI server.');
       console.error(error);
     }
   }
@@ -33,4 +35,3 @@ function toggleChatbox() {
     messages.appendChild(msgDiv);
     messages.scrollTop = messages.scrollHeight;
   }
-  
