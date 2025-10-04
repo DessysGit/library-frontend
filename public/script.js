@@ -207,6 +207,10 @@ async function login() {
             
             // Set user role
             userRole = user.role;
+
+            // Initialize chatbot with username
+            window.currentUsername = user.username;
+            await initializeChatbot();
             
             // Hide login forms and show main app
             const hamburgerButton = document.getElementById('hamburger-button');
@@ -1522,6 +1526,10 @@ async function checkAuthStatus() {
             const user = await response.json();
             userRole = user.role;
 
+            window.currentUsername = user.username;
+            // Initialize chatbot for authenticated users
+            await initializeChatbot();
+
             // Show authenticated UI elements
             const loginForm = document.getElementById('login-form');
             const mainContent = document.getElementById('main-content');
@@ -1854,6 +1862,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// Initialize chatbot when user logs in or page loads
+async function initializeChatbot() {
+    try {
+        // Fetch current user to get username
+        const response = await fetch(`${API_BASE_URL}/current-user`, { 
+            credentials: 'include' 
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            
+            // Set global username for chatbot
+            window.currentUsername = user.username || 'Guest';
+            
+            // Update burger menu username if it exists
+            const burgerUsername = document.getElementById('burger-username');
+            if (burgerUsername) {
+                burgerUsername.innerText = user.username;
+            }
+        }
+    } catch (error) {
+        console.log('⚠️ Could not initialize chatbot username:', error.message);
+        window.currentUsername = 'Guest';
+    }
+}
 
 // Call the necessary functions on page load
 document.addEventListener('DOMContentLoaded', () => {
