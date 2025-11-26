@@ -9,7 +9,6 @@ const API_BASE_URL = (() => {
     return ''; // Same origin for local development
   } else if (isNetlify || window.location.protocol === 'https:') {
     // Production (Netlify or any HTTPS site)
-    console.log('🌐 Running in PRODUCTION mode');
     return 'https://library-backend-j90e.onrender.com';
   } else {
     // Fallback to Render for HTTP sites
