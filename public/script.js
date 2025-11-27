@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
         } else {
-            console.log('User is not authenticated - showing login form');
             // User is not authenticated - show login form
             if (loginForm) {
                 loginForm.style.display = 'block';
@@ -113,7 +112,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loginForm = document.getElementById('login-form');
         if (loginForm) {
             loginForm.style.display = 'block';
-            console.log('Showed fallback login form');
         }
     }
 
@@ -258,7 +256,7 @@ async function login() {
             try {
                 await refreshProfilePicture();
             } catch (error) {
-                console.log('Profile picture refresh failed:', error.message);
+                // Profile picture refresh failed silently
             }
 
             // Fetch fresh data
@@ -646,7 +644,6 @@ async function fetchBooks(query = "", page = 1) {
 
     // Check if we're on the correct page with search inputs
     if (!titleInput || !authorInput || !genreInput) {
-        console.log("fetchBooks: Not on main search page, skipping fetch.");
         return;
     }
 
@@ -1216,7 +1213,6 @@ function initializePasswordStrength() {
     const strengthBar = strengthContainer?.querySelector('.password-strength-bar');
 
     if (!passwordInput || !strengthContainer || !strengthBar) {
-        console.log('Password strength elements not found');
         return;
     }
 
@@ -1442,7 +1438,6 @@ async function refreshProfilePicture() {
                 profilePic.src = profilePictureUrl.includes('data:') ? profilePictureUrl : profilePictureUrl + timestamp;
                 profilePic.onerror = function() {
                     this.src = defaultImage;
-                    console.log('Failed to load profile picture, using default');
                 };
             }
 
@@ -1450,7 +1445,6 @@ async function refreshProfilePicture() {
                 burgerProfilePic.src = profilePictureUrl.includes('data:') ? profilePictureUrl : profilePictureUrl + timestamp;
                 burgerProfilePic.onerror = function() {
                     this.src = defaultImage;
-                    console.log('Failed to load sidebar profile picture, using default');
                 };
             }
 
@@ -1474,8 +1468,6 @@ function setDefaultProfilePictures() {
 
     if (profilePic) profilePic.src = defaultImageLarge;
     if (burgerProfilePic) burgerProfilePic.src = defaultImage;
-
-    console.log('Set default profile pictures');
 }
 
 // Function to fetch user profile and display it
@@ -1883,7 +1875,7 @@ async function initializeChatbot() {
             }
         }
     } catch (error) {
-        console.log('⚠️ Could not initialize chatbot username:', error.message);
+        console.error('⚠️ Could not initialize chatbot username:', error.message);
         window.currentUsername = 'Guest';
     }
 }
