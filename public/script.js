@@ -589,9 +589,8 @@ async function showSection(sectionId) {
 
     // Refresh profile picture when showing profile section
     if (sectionId === 'profile-section') {
-        fetchProfile();
+        loadProfileData();
         await refreshProfilePicture();
-        disableProfileEditing();
     }
 
     // Hide Add Book section if user is not admin
@@ -1886,3 +1885,323 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuthStatus();
     setupOutsideClickListener();
 });
+
+// ========================================
+// PROFILE PAGE FUNCTIONS - REVOLUTIONIZED
+// ========================================
+
+// Switch between profile tabs
+function switchProfileTab(tabName) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.profile-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.profile-tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Add active class to selected tab and content
+    const selectedTab = Array.from(document.querySelectorAll('.profile-tab'))
+        .find(tab => tab.getAttribute('onclick').includes(tabName));
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+    
+    const selectedContent = document.getElementById(`tab-${tabName}`);
+    if (selectedContent) {
+        selectedContent.classList.add('active');
+    }
+    
+    // Load data based on tab
+    if (tabName === 'activity') {
+        loadUserActivity();
+        loadUserReviews();
+    }
+}
+
+// Enable preferences editing
+function enablePreferencesEdit() {
+    document.getElementById('profile-genres').disabled = false;
+    document.getElementById('profile-authors').disabled = false;
+    document.getElementById('profile-books').disabled = false;
+    document.getElementById('edit-preferences-btn').style.display = 'none';
+    document.getElementById('preferences-actions').style.display = 'flex';
+}
+
+// Cancel preferences editing
+function cancelPreferencesEdit() {
+    document.getElementById('profile-genres').disabled = true;
+    document.getElementById('profile-authors').disabled = true;
+    document.getElementById('profile-books').disabled = true;
+    document.getElementById('edit-preferences-btn').style.display = 'block';
+    document.getElementById('preferences-actions').style.display = 'none';
+    
+    // Reload profile data to revert changes
+    loadProfileData();
+}
+
+// Save preferences
+async function savePreferences() {
+    const favoriteGenres = document.getElementById('profile-genres').value.trim();
+    const favoriteAuthors = document.getElementById('profile-authors').value.trim();
+    const favoriteBooks = document.getElementById('profile-books').value.trim();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/updateProfile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                favoriteGenres, 
+                favoriteAuthors, 
+                favoriteBooks 
+            })
+        });
+
+        if (response.ok) {
+            // Disable editing mode
+            document.getElementById('profile-genres').disabled = true;
+            document.getElementById('profile-authors').disabled = true;
+            document.getElementById('profile-books').disabled = true;
+            document.getElementById('edit-preferences-btn').style.display = 'block';
+            document.getElementById('preferences-actions').style.display = 'none';
+            
+            // Show success message
+            alert('✅ Preferences updated successfully!');
+            
+            // Update favorites count
+            updateFavoritesCount(favoriteGenres, favoriteAuthors, favoriteBooks);
+        } else {
+            const errorMessage = await response.text();
+            alert('❌ Failed to update preferences: ' + errorMessage);
+        }
+    } catch (error) {
+        console.error('Error updating preferences:', error);
+        alert('❌ Failed to update preferences. Please try again.');
+    }
+}
+
+// Change password
+async function changePassword() {
+    const currentPassword = document.getElementById('current-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmNewPassword = document.getElementById('confirm-new-password').value;
+
+    // Validation
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+        alert('⚠️ Please fill in all password fields');
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        alert('⚠️ New password must be at least 6 characters long');
+        return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+        alert('⚠️ New passwords do not match');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/updateProfile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                password: newPassword,
+                currentPassword: currentPassword 
+            })
+        });
+
+        if (response.ok) {
+            alert('✅ Password updated successfully!');
+            // Clear password fields
+            document.getElementById('current-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-new-password').value = '';
+        } else {
+            const errorMessage = await response.text();
+            alert('❌ Failed to update password: ' + errorMessage);
+        }
+    } catch (error) {
+        console.error('Error updating password:', error);
+        alert('❌ Failed to update password. Please try again.');
+    }
+}
+
+// Load profile data into the new UI
+async function loadProfileData() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/profile`, { 
+            credentials: 'include' 
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            
+            // Update header info
+            const profileUsername = document.getElementById('profile-username');
+            const profileEmailDisplay = document.getElementById('profile-email-display');
+            if (profileUsername) profileUsername.innerText = user.username || 'User';
+            if (profileEmailDisplay) profileEmailDisplay.innerText = user.email || '';
+            
+            // Update preferences
+            const profileGenres = document.getElementById('profile-genres');
+            const profileAuthors = document.getElementById('profile-authors');
+            const profileBooks = document.getElementById('profile-books');
+            if (profileGenres) profileGenres.value = user.favoriteGenres || '';
+            if (profileAuthors) profileAuthors.value = user.favoriteAuthors || '';
+            if (profileBooks) profileBooks.value = user.favoriteBooks || '';
+            
+            // Update profile picture
+            if (user.profilePicture) {
+                let profilePictureUrl = user.profilePicture;
+                if (profilePictureUrl && profilePictureUrl.startsWith('/uploads/')) {
+                    profilePictureUrl = API_BASE_URL + profilePictureUrl;
+                }
+                const timestamp = '?t=' + new Date().getTime();
+                const profilePic = document.getElementById('profile-picture');
+                if (profilePic) profilePic.src = profilePictureUrl + timestamp;
+            } else {
+                setDefaultProfilePicture();
+            }
+            
+            // Update stats
+            updateFavoritesCount(user.favoriteGenres, user.favoriteAuthors, user.favoriteBooks);
+            
+            // Update account info
+            const accountCreatedDate = document.getElementById('account-created-date');
+            if (user.createdAt && accountCreatedDate) {
+                const createdDate = new Date(user.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                accountCreatedDate.innerText = createdDate;
+            }
+            
+            const lastLoginDate = document.getElementById('last-login-date');
+            if (lastLoginDate) {
+                if (user.lastLogin) {
+                    const lastLogin = new Date(user.lastLogin).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    lastLoginDate.innerText = lastLogin;
+                } else {
+                    lastLoginDate.innerText = 'Just now';
+                }
+            }
+            
+        } else {
+            console.error('Failed to load profile data');
+        }
+    } catch (error) {
+        console.error('Error loading profile:', error);
+    }
+}
+
+// Update favorites count in stats
+function updateFavoritesCount(genres, authors, books) {
+    let count = 0;
+    if (genres && genres.trim()) count += genres.split(',').filter(g => g.trim()).length;
+    if (authors && authors.trim()) count += authors.split(',').filter(a => a.trim()).length;
+    if (books && books.trim()) count += books.split(',').filter(b => b.trim()).length;
+    
+    const favoritesCount = document.getElementById('favorites-count');
+    if (favoritesCount) favoritesCount.innerText = count;
+}
+
+// Set default profile picture
+function setDefaultProfilePicture() {
+    const defaultImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="150"%3E%3Crect fill="%23444" width="150" height="150"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23fff" font-size="60" font-family="Arial"%3E👤%3C/text%3E%3C/svg%3E';
+    const profilePic = document.getElementById('profile-picture');
+    if (profilePic) profilePic.src = defaultImage;
+}
+
+// Load user activity (placeholder)
+async function loadUserActivity() {
+    const activityList = document.getElementById('recent-activity-list');
+    if (!activityList) return;
+    
+    activityList.innerHTML = '<div class="activity-loading"><i class="fas fa-spinner fa-spin"></i> Loading activity...</div>';
+    
+    // Simulate loading delay
+    setTimeout(() => {
+        activityList.innerHTML = `
+            <div class="activity-item">
+                <div><strong>📖 Downloaded:</strong> "The Great Gatsby"</div>
+                <div class="activity-item-time">2 days ago</div>
+            </div>
+            <div class="activity-item">
+                <div><strong>⭐ Rated:</strong> "1984" - 5 stars</div>
+                <div class="activity-item-time">5 days ago</div>
+            </div>
+            <div class="activity-item">
+                <div><strong>👍 Liked:</strong> "To Kill a Mockingbird"</div>
+                <div class="activity-item-time">1 week ago</div>
+            </div>
+            <div class="activity-item">
+                <div><strong>📚 Added to favorites:</strong> Science Fiction genre</div>
+                <div class="activity-item-time">2 weeks ago</div>
+            </div>
+        `;
+    }, 1000);
+}
+
+// Load user reviews (placeholder)
+async function loadUserReviews() {
+    const reviewsList = document.getElementById('user-reviews-list');
+    if (!reviewsList) return;
+    
+    reviewsList.innerHTML = '<div class="reviews-loading"><i class="fas fa-spinner fa-spin"></i> Loading reviews...</div>';
+    
+    // Simulate loading delay
+    setTimeout(() => {
+        reviewsList.innerHTML = `
+            <div class="review-item">
+                <div><strong>⭐⭐⭐⭐⭐ "1984" by George Orwell</strong></div>
+                <div style="color: #ccc; margin-top: 0.5rem;">A masterpiece that remains relevant today. Orwell's vision of a dystopian future is both terrifying and thought-provoking.</div>
+                <div class="review-item-time">Reviewed 5 days ago</div>
+            </div>
+            <div class="review-item">
+                <div><strong>⭐⭐⭐⭐ "The Great Gatsby" by F. Scott Fitzgerald</strong></div>
+                <div style="color: #ccc; margin-top: 0.5rem;">Beautifully written tale of the American Dream. The prose is stunning and the characters are unforgettable.</div>
+                <div class="review-item-time">Reviewed 2 weeks ago</div>
+            </div>
+        `;
+        
+        // Update reviews count
+        const reviewsCount = document.getElementById('reviews-count');
+        if (reviewsCount) reviewsCount.innerText = '2';
+    }, 1000);
+}
+
+// Password strength indicator for new password in profile
+(function initProfilePasswordStrength() {
+    document.addEventListener('DOMContentLoaded', () => {
+        const newPasswordInput = document.getElementById('new-password');
+        const strengthBar = document.getElementById('new-password-strength-bar');
+        
+        if (newPasswordInput && strengthBar) {
+            newPasswordInput.addEventListener('input', function() {
+                const password = this.value;
+                const strength = calculatePasswordStrength(password);
+                
+                // Update strength bar
+                const widthPercentage = Math.min((strength.score / 7) * 100, 100);
+                strengthBar.style.width = `${widthPercentage}%`;
+                
+                if (strength.level === 'weak') {
+                    strengthBar.style.backgroundColor = '#dc3545';
+                } else if (strength.level === 'medium') {
+                    strengthBar.style.backgroundColor = '#ffc107';
+                } else if (strength.level === 'strong') {
+                    strengthBar.style.backgroundColor = '#28a745';
+                }
+            });
+        }
+    });
+})();

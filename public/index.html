@@ -299,48 +299,194 @@
 
         <!-- User Profile Section -->
 <div id="profile-section" style="display: none;">
-    <div class="card shadow-lg bg-dark text-white p-4">
-      <div class="card-body">
-        <h2 class="card-title text-success text-center mb-4">👤 Edit Profile</h2>
-  
-        <div class="text-center mb-4">
-          <img id="profile-picture" class="rounded-circle img-thumbnail" src="" alt="Profile Picture" loading="lazy" style="width: 120px; height: 120px;">
-          <input type="file" id="profile-picture-input" class="form-control-file mt-3">
+    <div class="profile-container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="profile-cover"></div>
+            <div class="profile-avatar-section">
+                <div class="profile-avatar-wrapper">
+                    <img id="profile-picture" class="profile-avatar" src="" alt="Profile Picture" loading="lazy">
+                    <label for="profile-picture-input" class="profile-avatar-edit">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                    <input type="file" id="profile-picture-input" accept="image/*" style="display: none;">
+                </div>
+                <div class="profile-info">
+                    <h2 id="profile-username" class="profile-name">Loading...</h2>
+                    <p id="profile-email-display" class="profile-email">Loading...</p>
+                    <div class="profile-stats">
+                        <div class="stat-item">
+                            <span class="stat-value" id="books-read-count">0</span>
+                            <span class="stat-label">Books Read</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="reviews-count">0</span>
+                            <span class="stat-label">Reviews</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="favorites-count">0</span>
+                            <span class="stat-label">Favorites</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-  
-        <div class="form-group">
-          <label for="profile-email">Email</label>
-          <input type="email" id="profile-email" class="form-control" placeholder="Enter your email" disabled>
+
+        <!-- Profile Content -->
+        <div class="profile-content">
+            <!-- Navigation Tabs -->
+            <div class="profile-tabs">
+                <button class="profile-tab active" onclick="switchProfileTab('preferences')">
+                    <i class="fas fa-heart"></i> Preferences
+                </button>
+                <button class="profile-tab" onclick="switchProfileTab('security')">
+                    <i class="fas fa-lock"></i> Security
+                </button>
+                <button class="profile-tab" onclick="switchProfileTab('activity')">
+                    <i class="fas fa-clock"></i> Activity
+                </button>
+            </div>
+
+            <!-- Preferences Tab -->
+            <div id="tab-preferences" class="profile-tab-content active">
+                <div class="profile-section-card">
+                    <div class="section-header-with-action">
+                        <h3><i class="fas fa-book"></i> Reading Preferences</h3>
+                        <button id="edit-preferences-btn" class="btn-edit-small" onclick="enablePreferencesEdit()">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </div>
+                    
+                    <div class="preference-grid">
+                        <div class="preference-item">
+                            <label for="profile-genres">
+                                <i class="fas fa-tags"></i> Favorite Genres
+                            </label>
+                            <input type="text" id="profile-genres" class="form-control" 
+                                   placeholder="e.g., Sci-fi, Romance, Mystery" disabled>
+                            <small class="form-text">Separate multiple genres with commas</small>
+                        </div>
+
+                        <div class="preference-item">
+                            <label for="profile-authors">
+                                <i class="fas fa-user-edit"></i> Favorite Authors
+                            </label>
+                            <input type="text" id="profile-authors" class="form-control" 
+                                   placeholder="e.g., Tolkien, Rowling, King" disabled>
+                            <small class="form-text">Separate multiple authors with commas</small>
+                        </div>
+
+                        <div class="preference-item full-width">
+                            <label for="profile-books">
+                                <i class="fas fa-bookmark"></i> Favorite Books
+                            </label>
+                            <textarea id="profile-books" class="form-control" rows="3"
+                                      placeholder="e.g., The Hobbit, Harry Potter, 1984" disabled></textarea>
+                            <small class="form-text">List your all-time favorite books</small>
+                        </div>
+                    </div>
+
+                    <div id="preferences-actions" class="form-actions" style="display: none;">
+                        <button class="btn btn-success" onclick="savePreferences()">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button class="btn btn-secondary" onclick="cancelPreferencesEdit()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Tab -->
+            <div id="tab-security" class="profile-tab-content">
+                <div class="profile-section-card">
+                    <h3><i class="fas fa-shield-alt"></i> Change Password</h3>
+                    
+                    <div class="security-form">
+                        <div class="form-group">
+                            <label for="current-password">
+                                <i class="fas fa-key"></i> Current Password
+                            </label>
+                            <input type="password" id="current-password" class="form-control" 
+                                   placeholder="Enter your current password">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="new-password">
+                                <i class="fas fa-lock"></i> New Password
+                            </label>
+                            <input type="password" id="new-password" class="form-control" 
+                                   placeholder="Enter new password (min 6 characters)">
+                            <div class="password-strength">
+                                <div class="password-strength-bar" id="new-password-strength-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirm-new-password">
+                                <i class="fas fa-lock"></i> Confirm New Password
+                            </label>
+                            <input type="password" id="confirm-new-password" class="form-control" 
+                                   placeholder="Confirm your new password">
+                        </div>
+
+                        <button class="btn btn-danger" onclick="changePassword()">
+                            <i class="fas fa-key"></i> Update Password
+                        </button>
+                    </div>
+                </div>
+
+                <div class="profile-section-card">
+                    <h3><i class="fas fa-info-circle"></i> Account Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Account Created</span>
+                            <span class="info-value" id="account-created-date">Loading...</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Last Login</span>
+                            <span class="info-value" id="last-login-date">Loading...</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Email Status</span>
+                            <span class="info-value verified">
+                                <i class="fas fa-check-circle"></i> Verified
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Tab -->
+            <div id="tab-activity" class="profile-tab-content">
+                <div class="profile-section-card">
+                    <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                    <div id="recent-activity-list" class="activity-list">
+                        <div class="activity-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading activity...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section-card">
+                    <h3><i class="fas fa-star"></i> Your Reviews</h3>
+                    <div id="user-reviews-list" class="reviews-list">
+                        <div class="reviews-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading reviews...
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-  
-        <div class="form-group">
-          <label for="profile-genres">Favorite Genres</label>
-          <input type="text" id="profile-genres" class="form-control" placeholder="e.g., Sci-fi, Romance" disabled>
+
+        <!-- Back Button -->
+        <div class="profile-back-section">
+            <button onclick="showSection('search-books')" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left"></i> Back to Library
+            </button>
         </div>
-  
-        <div class="form-group">
-          <label for="profile-authors">Favorite Authors</label>
-          <input type="text" id="profile-authors" class="form-control" placeholder="e.g., Tolkien, Rowling" disabled>
-        </div>
-  
-        <div class="form-group">
-          <label for="profile-books">Favorite Books</label>
-          <input type="text" id="profile-books" class="form-control" placeholder="e.g., The Hobbit" disabled>
-        </div>
-  
-        <div class="form-group">
-          <label for="profile-password">New Password</label>
-          <input type="password" id="profile-password" class="form-control" placeholder="Enter new password">
-        </div>
-  
-        <div class="d-flex flex-column align-items-center gap-2">
-          <button id="edit-profile-button" onclick="enableProfileEditing()" class="btn btn-warning mb-2 w-100">Edit</button>
-          <button id="save-profile-button" onclick="updateProfile()" class="btn btn-success mb-2 w-100" style="display: none;">Save Changes</button>
-          <button onclick="showSection('search-books')" class="btn btn-outline-light w-100">← Back to Main Page</button>
-        </div>
-      </div>
     </div>
-  </div>
+</div>
   
         <!-- Logout Button -->
         <div class="mt-4 text-center">
