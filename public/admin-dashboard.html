@@ -9,120 +9,190 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
+        body {
+            background: #0f0f0f;
+            color: #fff;
+        }
+
         .dashboard-card {
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             height: 100%;
+            background: rgba(30, 30, 30, 0.95);
+            border: 1px solid rgba(29, 185, 84, 0.2);
         }
         
         .dashboard-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 12px 30px rgba(29, 185, 84, 0.3);
         }
         
         .stat-card {
-            padding: 25px;
+            padding: 20px;
             text-align: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1DB954 0%, #17a647 100%);
             color: white;
             border: none;
+            position: relative;
+            overflow: hidden;
         }
         
-        .stat-card.success {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 3s ease-in-out infinite;
         }
         
-        .stat-card.warning {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
         }
         
-        .stat-card.info {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        .stat-card.users {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        }
+        
+        .stat-card.books {
+            background: linear-gradient(135deg, #d946a6 0%, #db2777 100%);
+        }
+        
+        .stat-card.reviews {
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+        }
+        
+        .stat-card.downloads {
+            background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
         }
         
         .stat-number {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: bold;
             margin: 10px 0;
+            position: relative;
+            z-index: 1;
         }
         
         .stat-label {
-            font-size: 1rem;
+            font-size: 0.85rem;
             opacity: 0.9;
             text-transform: uppercase;
             letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
         }
         
         .stat-icon {
-            font-size: 2.5rem;
-            opacity: 0.3;
+            font-size: 2rem;
+            opacity: 0.15;
             position: absolute;
             bottom: 10px;
             right: 15px;
         }
         
+        .stat-change {
+            font-size: 0.75rem;
+            margin-top: 8px;
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-change.positive {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        
+        .stat-change.negative {
+            background: rgba(244, 67, 54, 0.3);
+        }
+        
         .chart-container {
             position: relative;
-            height: 300px;
+            height: 350px;
             padding: 20px;
+        }
+        
+        .dashboard-header {
+            background: linear-gradient(135deg, #1DB954 0%, #17a647 100%);
+            color: white;
+            padding: 50px 0;
+            margin-bottom: 40px;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 0h100v100H0z" fill="none"/%3E%3Cpath d="M20 50L50 20l30 30-30 30z" fill="%23ffffff" opacity="0.05"/%3E%3C/svg%3E');
+            background-size: 100px 100px;
+            opacity: 0.3;
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        
+        .card-header {
+            border-bottom: 2px solid rgba(29, 185, 84, 0.3);
+            font-weight: 600;
         }
         
         .activity-item {
             padding: 15px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #1DB954;
             margin-bottom: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
+            background: rgba(40, 40, 40, 0.6);
+            border-radius: 8px;
             transition: all 0.3s ease;
-            color: #333; /* Dark text color */
         }
         
         .activity-item:hover {
-            background: #e9ecef;
+            background: rgba(50, 50, 50, 0.8);
             transform: translateX(5px);
-        }
-        
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            margin-right: 15px;
-        }
-        
-        .activity-icon.review {
-            background: #ffc107;
-            color: white;
-        }
-        
-        .activity-icon.user {
-            background: #28a745;
-            color: white;
-        }
-        
-        .activity-icon.book {
-            background: #17a2b8;
-            color: white;
+            border-left-color: #17a647;
         }
         
         .book-card {
             display: flex;
             align-items: center;
             padding: 15px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
             margin-bottom: 15px;
             transition: all 0.3s ease;
-            color: #333; /* Dark text color */
+            background: rgba(40, 40, 40, 0.4);
         }
         
         .book-card:hover {
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 15px rgba(29, 185, 84, 0.2);
             transform: translateX(5px);
+            background: rgba(50, 50, 50, 0.6);
         }
         
         .book-card img {
@@ -131,21 +201,7 @@
             object-fit: cover;
             border-radius: 5px;
             margin-right: 15px;
-        }
-        
-        .dashboard-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 0;
-            margin-bottom: 30px;
-            border-radius: 10px;
-        }
-        
-        .back-btn {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
+            border: 2px solid rgba(29, 185, 84, 0.3);
         }
         
         .loading-spinner {
@@ -155,16 +211,39 @@
             height: 200px;
         }
         
-        .badge-success {
-            background-color: #28a745;
+        .time-filter-inline {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         
-        .badge-warning {
-            background-color: #ffc107;
+        .time-filter-inline .btn {
+            border-radius: 20px;
+            font-size: 0.8rem;
+            padding: 6px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
         }
         
-        .badge-info {
-            background-color: #17a2b8;
+        .time-filter-inline .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .time-filter-inline .btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+        }
+        
+        .metric-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
         }
         
         @media (max-width: 768px) {
@@ -172,86 +251,132 @@
                 font-size: 2rem;
             }
             
+            .time-filter-inline {
+                margin-top: 15px;
+                width: 100%;
+            }
+            
+            .dashboard-header .d-flex {
+                flex-direction: column;
+            }
+            
             .chart-container {
                 height: 250px;
+            }
+            
+            .dashboard-header {
+                padding: 30px 0;
             }
         }
     </style>
 </head>
 <body>
     <!-- Back Button -->
-    <a href="index.html" class="btn btn-light back-btn">
+    <a href="index.html" class="btn back-btn">
         <i class="fas fa-arrow-left"></i> Back to Library
     </a>
 
     <div class="container mt-5">
         <!-- Dashboard Header -->
         <div class="dashboard-header text-center">
-            <h1><i class="fas fa-chart-line"></i> Admin Analytics Dashboard</h1>
-            <p class="mb-0">Real-time insights and statistics</p>
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="flex-grow-1">
+                    <h1><i class="fas fa-chart-line"></i> Analytics Dashboard</h1>
+                    <p class="mb-0">Comprehensive insights and real-time statistics</p>
+                    <small id="last-updated" class="d-block mt-2" style="opacity: 0.8;"></small>
+                </div>
+                <!-- Time Filter in Header -->
+                <div class="time-filter-inline">
+                    <button class="btn btn-outline-light btn-sm active" onclick="setTimeFilter('all')">All Time</button>
+                    <button class="btn btn-outline-light btn-sm" onclick="setTimeFilter('30')">30 Days</button>
+                    <button class="btn btn-outline-light btn-sm" onclick="setTimeFilter('7')">7 Days</button>
+                    <button class="btn btn-outline-light btn-sm" onclick="setTimeFilter('1')">Today</button>
+                </div>
+            </div>
         </div>
 
         <!-- Statistics Cards -->
         <div class="row mb-4">
-            <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card dashboard-card stat-card">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card dashboard-card stat-card users">
                     <div class="position-relative">
                         <p class="stat-label">Total Users</p>
                         <h2 class="stat-number" id="total-users">
                             <div class="spinner-border text-light" role="status"></div>
                         </h2>
-                        <small id="recent-users">Loading...</small>
+                        <div class="stat-change positive" id="users-change">
+                            <i class="fas fa-arrow-up"></i> <span id="users-change-text">Loading...</span>
+                        </div>
                         <i class="fas fa-users stat-icon"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card dashboard-card stat-card success">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card dashboard-card stat-card books">
                     <div class="position-relative">
                         <p class="stat-label">Total Books</p>
                         <h2 class="stat-number" id="total-books">
                             <div class="spinner-border text-light" role="status"></div>
                         </h2>
-                        <small id="recent-books">Loading...</small>
+                        <div class="stat-change positive" id="books-change">
+                            <i class="fas fa-arrow-up"></i> <span id="books-change-text">Loading...</span>
+                        </div>
                         <i class="fas fa-book stat-icon"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card dashboard-card stat-card warning">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card dashboard-card stat-card reviews">
                     <div class="position-relative">
                         <p class="stat-label">Total Reviews</p>
                         <h2 class="stat-number" id="total-reviews">
                             <div class="spinner-border text-light" role="status"></div>
                         </h2>
-                        <small id="avg-rating">Loading...</small>
+                        <div class="stat-change" id="reviews-change">
+                            <i class="fas fa-star"></i> <span id="avg-rating">Avg: 0.0 ⭐</span>
+                        </div>
                         <i class="fas fa-star stat-icon"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card dashboard-card stat-card info">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card dashboard-card stat-card downloads">
                     <div class="position-relative">
-                        <p class="stat-label">Downloads</p>
-                        <h2 class="stat-number" id="total-downloads">
+                        <p class="stat-label">Active Users</p>
+                        <h2 class="stat-number" id="active-users">
                             <div class="spinner-border text-light" role="status"></div>
                         </h2>
-                        <small>All time</small>
-                        <i class="fas fa-download stat-icon"></i>
+                        <div class="stat-change" id="active-change">
+                            <i class="fas fa-users"></i> <span id="active-text">Last 7 days</span>
+                        </div>
+                        <i class="fas fa-user-check stat-icon"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Charts Row -->
+        <!-- Main Charts Row -->
         <div class="row mb-4">
-            <div class="col-md-6 mb-4">
+            <div class="col-lg-8 mb-4">
                 <div class="card dashboard-card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Genre Distribution</h5>
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #1DB954, #17a647);">
+                        <h5 class="mb-0"><i class="fas fa-chart-area"></i> User Growth & Book Uploads</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="growthChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 mb-4">
+                <div class="card dashboard-card">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Genre Distribution</h5>
                     </div>
                     <div class="card-body">
                         <div class="chart-container">
@@ -260,80 +385,96 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="col-md-6 mb-4">
+        </div>
+
+        <!-- Rating & Reviews Charts -->
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-4">
                 <div class="card dashboard-card">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-chart-line"></i> User Registrations (30 Days)</h5>
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                        <h5 class="mb-0"><i class="fas fa-star-half-alt"></i> Rating Distribution</h5>
                     </div>
                     <div class="card-body">
                         <div class="chart-container">
-                            <canvas id="userActivityChart"></canvas>
+                            <canvas id="ratingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="card dashboard-card">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+                        <h5 class="mb-0"><i class="fas fa-chart-line"></i> Review Trends</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="reviewTrendChart"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Popular Books & Activity -->
+        <!-- Popular Books & Top Reviewers -->
         <div class="row mb-4">
-            <div class="col-md-6 mb-4">
+            <div class="col-lg-6 mb-4">
                 <div class="card dashboard-card">
-                    <div class="card-header bg-warning text-white">
-                        <h5 class="mb-0"><i class="fas fa-fire"></i> Popular Books</h5>
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                        <h5 class="mb-0"><i class="fas fa-fire"></i> Top 10 Popular Books</h5>
                     </div>
                     <div class="card-body" style="max-height: 500px; overflow-y: auto;">
                         <div id="popular-books">
                             <div class="loading-spinner">
-                                <div class="spinner-border text-primary" role="status"></div>
+                                <div class="spinner-border text-success" role="status"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="col-md-6 mb-4">
+            <div class="col-lg-6 mb-4">
                 <div class="card dashboard-card">
-                    <div class="card-header bg-info text-white">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #fa709a, #fee140);">
+                        <h5 class="mb-0"><i class="fas fa-trophy"></i> Top Reviewers</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                        <div id="top-reviewers">
+                            <div class="loading-spinner">
+                                <div class="spinner-border text-success" role="status"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity & Books Needing Attention -->
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-4">
+                <div class="card dashboard-card">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #30cfd0, #330867);">
                         <h5 class="mb-0"><i class="fas fa-history"></i> Recent Activity</h5>
                     </div>
                     <div class="card-body" style="max-height: 500px; overflow-y: auto;">
                         <div id="recent-activity">
                             <div class="loading-spinner">
-                                <div class="spinner-border text-primary" role="status"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top Reviewers & Books Needing Reviews -->
-        <div class="row mb-4">
-            <div class="col-md-6 mb-4">
-                <div class="card dashboard-card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-trophy"></i> Top Reviewers</h5>
-                    </div>
-                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                        <div id="top-reviewers">
-                            <div class="loading-spinner">
-                                <div class="spinner-border text-primary" role="status"></div>
+                                <div class="spinner-border text-success" role="status"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="col-md-6 mb-4">
+            <div class="col-lg-6 mb-4">
                 <div class="card dashboard-card">
-                    <div class="card-header bg-danger text-white">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #ff6b6b, #ee5a24);">
                         <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Books Without Reviews</h5>
                     </div>
-                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    <div class="card-body" style="max-height: 500px; overflow-y: auto;">
                         <div id="books-without-reviews">
                             <div class="loading-spinner">
-                                <div class="spinner-border text-primary" role="status"></div>
+                                <div class="spinner-border text-success" role="status"></div>
                             </div>
                         </div>
                     </div>

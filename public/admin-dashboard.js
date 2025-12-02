@@ -1,14 +1,20 @@
 /**
- * Admin Dashboard JavaScript
- * Handles data fetching and chart rendering
+ * Enhanced Admin Dashboard JavaScript
+ * Handles data fetching and chart rendering with advanced analytics
  */
 
 const API_BASE_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:3000'
     : 'https://library-backend-j90e.onrender.com';
 
+// Chart instances
 let genreChart = null;
-let userActivityChart = null;
+let growthChart = null;
+let ratingChart = null;
+let reviewTrendChart = null;
+
+// Current time filter
+let currentTimeFilter = 'all';
 
 // Check if user is admin
 async function checkAdminAccess() {
@@ -38,10 +44,28 @@ async function checkAdminAccess() {
     }
 }
 
+// Set time filter
+function setTimeFilter(filter) {
+    currentTimeFilter = filter;
+    
+    // Update button states - Remove active from all buttons first
+    document.querySelectorAll('.time-filter-inline .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Add active class to clicked button
+    event.target.classList.add('active');
+    
+    // Reload only the data that uses time filters
+    loadStats();
+    loadGrowthChart();
+    loadReviewTrendChart();
+}
+
 // Fetch and display overall statistics
 async function loadStats() {
     try {
-        const response = await fetch(`${API_BASE_URL}/analytics/stats`, {
+        const response = await fetch(`${API_BASE_URL}/analytics/stats?timeFilter=${currentTimeFilter}`, {
             credentials: 'include'
         });
         
@@ -50,18 +74,39 @@ async function loadStats() {
         const stats = await response.json();
         
         // Update stat cards with animation
-        animateValue('total-users', 0, stats.totalUsers, 1000);
-        animateValue('total-books', 0, stats.totalBooks, 1000);
-        animateValue('total-reviews', 0, stats.totalReviews, 1000);
-        animateValue('total-downloads', 0, stats.totalDownloads, 1000);
+        animateValue('total-users', 0, stats.totalUsers || 0, 1000);
+        animateValue('total-books', 0, stats.totalBooks || 0, 1000);
+        animateValue('total-reviews', 0, stats.totalReviews || 0, 1000);
+        animateValue('active-users', 0, stats.activeUsers || 0, 1000);
         
-        // Update small text
-        document.getElementById('recent-users').textContent = 
-            `+${stats.recentUsers} this month`;
-        document.getElementById('recent-books').textContent = 
-            `+${stats.recentBooks} this month`;
+        // Update change indicators
+        const usersChange = document.getElementById('users-change');
+        const booksChange = document.getElementById('books-change');
+        
+        if (stats.recentUsers > 0) {
+            usersChange.classList.add('positive');
+            usersChange.innerHTML = `<i class="fas fa-arrow-up"></i> <span>+${stats.recentUsers} this month</span>`;
+        } else {
+            usersChange.classList.remove('positive');
+            usersChange.innerHTML = `<i class="fas fa-minus"></i> <span>No new users</span>`;
+        }
+        
+        if (stats.recentBooks > 0) {
+            booksChange.classList.add('positive');
+            booksChange.innerHTML = `<i class="fas fa-arrow-up"></i> <span>+${stats.recentBooks} this month</span>`;
+        } else {
+            booksChange.classList.remove('positive');
+            booksChange.innerHTML = `<i class="fas fa-minus"></i> <span>No new books</span>`;
+        }
+        
+        // Update average rating
         document.getElementById('avg-rating').textContent = 
-            `Avg: ${stats.averageRating.toFixed(1)} ⭐`;
+            `Avg: ${(stats.averageRating || 0).toFixed(1)} ⭐`;
+        
+        // Update last updated time
+        const now = new Date();
+        document.getElementById('last-updated').textContent = 
+            `Last updated: ${now.toLocaleString()}`;
         
     } catch (error) {
         console.error('Error loading stats:', error);
@@ -104,6 +149,12 @@ async function loadGenreChart() {
             genreChart.destroy();
         }
         
+        if (genres.length === 0) {
+            document.getElementById('genreChart').parentElement.innerHTML = 
+                '<p class="text-center text-muted">No genre data available</p>';
+            return;
+        }
+        
         genreChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -111,12 +162,14 @@ async function loadGenreChart() {
                 datasets: [{
                     data: genres.map(g => g.count),
                     backgroundColor: [
-                        '#667eea', '#764ba2', '#f093fb', '#f5576c',
-                        '#4facfe', '#00f2fe', '#11998e', '#38ef7d',
-                        '#ffc107', '#17a2b8'
+                        '#1DB954', '#667eea', '#f093fb', '#f5576c',
+                        '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+                        '#ffc107', '#17a2b8', '#764ba2', '#fa709a'
                     ],
-                    borderWidth: 2,
-                    borderColor: '#fff'
+                    borderWidth: 3,
+                    borderColor: '#0f0f0f',
+                    hoverBorderColor: '#fff',
+                    hoverBorderWidth: 3
                 }]
             },
             options: {
@@ -128,8 +181,9 @@ async function loadGenreChart() {
                         labels: {
                             padding: 15,
                             font: {
-                                size: 12
-                            }
+                                size: 11
+                            },
+                            color: '#fff'
                         }
                     },
                     tooltip: {
@@ -139,7 +193,7 @@ async function loadGenreChart() {
                                 const value = context.parsed || 0;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                 const percentage = ((value / total) * 100).toFixed(1);
-                                return `${label}: ${value} (${percentage}%)`;
+                                return `${label}: ${value} books (${percentage}%)`;
                             }
                         }
                     }
@@ -154,45 +208,296 @@ async function loadGenreChart() {
     }
 }
 
-// Load and render user activity chart
-async function loadUserActivityChart() {
+// Load and render growth chart (Users + Books over time)
+async function loadGrowthChart() {
     try {
-        const response = await fetch(`${API_BASE_URL}/analytics/user-activity`, {
-            credentials: 'include'
-        });
-        
-        if (!response.ok) throw new Error('Failed to fetch user activity');
-        
-        const activity = await response.json();
-        
-        const ctx = document.getElementById('userActivityChart').getContext('2d');
-        
-        // Destroy existing chart if it exists
-        if (userActivityChart) {
-            userActivityChart.destroy();
-        }
-        
-        // Handle empty data
-        if (activity.length === 0) {
-            document.getElementById('userActivityChart').parentElement.innerHTML = 
-                '<p class="text-center text-muted">No recent user registration data available</p>';
+        // Check if canvas exists
+        const canvas = document.getElementById('growthChart');
+        if (!canvas) {
+            console.log('Growth chart canvas not found, skipping...');
             return;
         }
         
-        userActivityChart = new Chart(ctx, {
+        const [usersResponse, booksResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/analytics/user-activity?timeFilter=${currentTimeFilter}`, {
+                credentials: 'include'
+            }),
+            fetch(`${API_BASE_URL}/analytics/book-uploads?timeFilter=${currentTimeFilter}`, {
+                credentials: 'include'
+            })
+        ]);
+        
+        if (!usersResponse.ok || !booksResponse.ok) {
+            throw new Error('Failed to fetch growth data');
+        }
+        
+        const userActivity = await usersResponse.json();
+        const bookUploads = await booksResponse.json();
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (growthChart) {
+            growthChart.destroy();
+        }
+        
+        // Handle empty data
+        if (userActivity.length === 0 && bookUploads.length === 0) {
+            const container = canvas.parentElement;
+            if (container) {
+                container.innerHTML = '<p class="text-center text-muted">No growth data available for selected time period</p>';
+            }
+            return;
+        }
+        
+        // Merge and sort dates
+        const allDates = [...new Set([
+            ...userActivity.map(a => a.date),
+            ...bookUploads.map(b => b.date)
+        ])].sort();
+        
+        // Create data arrays
+        const userData = allDates.map(date => {
+            const entry = userActivity.find(a => a.date === date);
+            return entry ? entry.count : 0;
+        });
+        
+        const bookData = allDates.map(date => {
+            const entry = bookUploads.find(b => b.date === date);
+            return entry ? entry.count : 0;
+        });
+        
+        growthChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: activity.map(a => new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                labels: allDates.map(date => new Date(date).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric' 
+                })),
                 datasets: [{
                     label: 'New Users',
-                    data: activity.map(a => a.count),
-                    borderColor: '#28a745',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    data: userData,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
                     tension: 0.4,
                     fill: true,
                     pointRadius: 4,
                     pointHoverRadius: 6,
-                    pointBackgroundColor: '#28a745',
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }, {
+                    label: 'New Books',
+                    data: bookData,
+                    borderColor: '#1DB954',
+                    backgroundColor: 'rgba(29, 185, 84, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#1DB954',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: '#fff',
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            color: '#aaa'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#aaa'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error loading growth chart:', error);
+        const canvas = document.getElementById('growthChart');
+        if (canvas && canvas.parentElement) {
+            canvas.parentElement.innerHTML = 
+                '<p class="text-center text-muted">Failed to load chart</p>';
+        }
+    }
+}
+
+// Load and render rating distribution chart
+async function loadRatingChart() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/analytics/rating-distribution`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch rating distribution');
+        
+        const ratings = await response.json();
+        
+        const ctx = document.getElementById('ratingChart').getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (ratingChart) {
+            ratingChart.destroy();
+        }
+        
+        // Create array for all ratings 1-5
+        const ratingData = [1, 2, 3, 4, 5].map(rating => {
+            const found = ratings.find(r => r.rating === rating);
+            return found ? found.count : 0;
+        });
+        
+        ratingChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['⭐ 1 Star', '⭐⭐ 2 Stars', '⭐⭐⭐ 3 Stars', '⭐⭐⭐⭐ 4 Stars', '⭐⭐⭐⭐⭐ 5 Stars'],
+                datasets: [{
+                    label: 'Number of Reviews',
+                    data: ratingData,
+                    backgroundColor: [
+                        '#ff6b6b',
+                        '#ffa502',
+                        '#ffc107',
+                        '#26de81',
+                        '#20bf6b'
+                    ],
+                    borderColor: '#0f0f0f',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((context.parsed.y / total) * 100).toFixed(1) : 0;
+                                return `${context.parsed.y} reviews (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            color: '#aaa'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#aaa'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error loading rating chart:', error);
+        document.getElementById('ratingChart').parentElement.innerHTML = 
+            '<p class="text-center text-muted">Failed to load chart</p>';
+    }
+}
+
+// Load and render review trend chart
+async function loadReviewTrendChart() {
+    try {
+        // Check if canvas exists
+        const canvas = document.getElementById('reviewTrendChart');
+        if (!canvas) {
+            console.log('Review trend chart canvas not found, skipping...');
+            return;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/analytics/review-trends?timeFilter=${currentTimeFilter}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch review trends');
+        
+        const trends = await response.json();
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (reviewTrendChart) {
+            reviewTrendChart.destroy();
+        }
+        
+        if (trends.length === 0) {
+            const container = canvas.parentElement;
+            if (container) {
+                container.innerHTML = 
+                    '<p class="text-center text-muted">No review data available for selected time period</p>';
+            }
+            return;
+        }
+        
+        reviewTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trends.map(t => new Date(t.date).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric' 
+                })),
+                datasets: [{
+                    label: 'Reviews Posted',
+                    data: trends.map(t => t.count),
+                    borderColor: '#43e97b',
+                    backgroundColor: 'rgba(67, 233, 123, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#43e97b',
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2
                 }]
@@ -213,7 +518,19 @@ async function loadUserActivityChart() {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            stepSize: 1
+                            stepSize: 1,
+                            color: '#aaa'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#aaa'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
                         }
                     }
                 }
@@ -221,9 +538,12 @@ async function loadUserActivityChart() {
         });
         
     } catch (error) {
-        console.error('Error loading user activity chart:', error);
-        document.getElementById('userActivityChart').parentElement.innerHTML = 
-            '<p class="text-center text-muted">Failed to load chart</p>';
+        console.error('Error loading review trend chart:', error);
+        const canvas = document.getElementById('reviewTrendChart');
+        if (canvas && canvas.parentElement) {
+            canvas.parentElement.innerHTML = 
+                '<p class="text-center text-muted">Failed to load chart</p>';
+        }
     }
 }
 
@@ -245,7 +565,7 @@ async function loadPopularBooks() {
             return;
         }
         
-        container.innerHTML = books.map((book, index) => `
+        container.innerHTML = books.slice(0, 10).map((book, index) => `
             <div class="book-card">
                 <img src="${book.cover || 'https://via.placeholder.com/60x90?text=No+Cover'}" 
                      alt="${book.title}" 
@@ -258,7 +578,7 @@ async function loadPopularBooks() {
                             ${book.reviewCount} reviews
                         </span>
                         <span class="badge badge-warning">
-                            ⭐ ${book.avgRating.toFixed(1)}
+                            ⭐ ${(book.avgRating || 0).toFixed(1)}
                         </span>
                     </div>
                 </div>
@@ -295,33 +615,48 @@ async function loadRecentActivity() {
             const timeAgo = getTimeAgo(date);
             
             let content = '';
-            let iconClass = '';
+            let iconClass = 'fa-info-circle';
+            let iconColor = '#1DB954';
             
             if (activity.type === 'review') {
                 content = `
-                    <strong>${activity.username}</strong> reviewed 
-                    <em>${activity.book_title}</em>
+                    <strong style="color: #1DB954;">${activity.username}</strong> reviewed 
+                    <em style="color: #4facfe;">${activity.book_title}</em>
                     <div class="mt-1">
                         <span class="badge badge-warning">⭐ ${activity.rating}/5</span>
+                        <small class="text-muted ml-2">${timeAgo}</small>
                     </div>
                 `;
-                iconClass = 'review';
+                iconClass = 'fa-star';
+                iconColor = '#ffc107';
             } else if (activity.type === 'user') {
-                content = `New user <strong>${activity.username}</strong> joined`;
-                iconClass = 'user';
+                content = `
+                    New user <strong style="color: #1DB954;">${activity.username}</strong> joined
+                    <div class="mt-1">
+                        <small class="text-muted">${timeAgo}</small>
+                    </div>
+                `;
+                iconClass = 'fa-user-plus';
+                iconColor = '#667eea';
             } else if (activity.type === 'book') {
-                content = `New book added: <em>${activity.title}</em> by ${activity.author}`;
-                iconClass = 'book';
+                content = `
+                    New book added: <em style="color: #4facfe;">${activity.title}</em> by ${activity.author}
+                    <div class="mt-1">
+                        <small class="text-muted">${timeAgo}</small>
+                    </div>
+                `;
+                iconClass = 'fa-book';
+                iconColor = '#f093fb';
             }
             
             return `
                 <div class="activity-item">
-                    <div class="d-flex align-items-center">
-                        <div class="activity-icon ${iconClass}">
-                            <i class="fas fa-${iconClass === 'review' ? 'star' : iconClass === 'user' ? 'user-plus' : 'book'}"></i>
+                    <div class="d-flex align-items-start">
+                        <div style="margin-right: 15px;">
+                            <i class="fas ${iconClass}" style="color: ${iconColor}; font-size: 20px;"></i>
                         </div>
                         <div class="flex-grow-1">
-                            <div>${content}</div>
+                            ${content}
                         </div>
                     </div>
                 </div>
@@ -353,25 +688,31 @@ async function loadTopReviewers() {
             return;
         }
         
-        container.innerHTML = reviewers.map((reviewer, index) => `
-            <div class="d-flex align-items-center justify-content-between mb-3 p-3 bg-light rounded">
+        container.innerHTML = reviewers.map((reviewer, index) => {
+            const medals = ['🥇', '🥈', '🥉'];
+            const medal = index < 3 ? medals[index] : `#${index + 1}`;
+            
+            return `
+            <div class="d-flex align-items-center justify-content-between mb-3 p-3 rounded"
+                 style="background: rgba(40, 40, 40, 0.6); border-left: 4px solid ${index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#1DB954'};">
                 <div class="d-flex align-items-center">
                     <div class="mr-3">
-                        <span class="badge badge-primary" style="font-size: 1.2rem;">
-                            #${index + 1}
+                        <span style="font-size: 1.5rem;">
+                            ${medal}
                         </span>
                     </div>
                     <div>
-                        <h6 class="mb-0">${reviewer.username}</h6>
+                        <h6 class="mb-0" style="color: #1DB954;">${reviewer.username}</h6>
                         <small class="text-muted">${reviewer.email}</small>
                     </div>
                 </div>
                 <div class="text-right">
-                    <div><strong>${reviewer.reviewCount}</strong> reviews</div>
+                    <div><strong style="color: #fff;">${reviewer.reviewCount}</strong> <small class="text-muted">reviews</small></div>
                     <small class="text-muted">Avg: ${reviewer.avgRating} ⭐</small>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
         
     } catch (error) {
         console.error('Error loading top reviewers:', error);
@@ -394,7 +735,7 @@ async function loadBooksWithoutReviews() {
         const container = document.getElementById('books-without-reviews');
         
         if (books.length === 0) {
-            container.innerHTML = '<p class="text-center text-success">All books have reviews! 🎉</p>';
+            container.innerHTML = '<p class="text-center" style="color: #1DB954;">All books have reviews! 🎉</p>';
             return;
         }
         
@@ -407,6 +748,9 @@ async function loadBooksWithoutReviews() {
                 <div class="flex-grow-1">
                     <h6 class="mb-1">${book.title}</h6>
                     <p class="mb-0 text-muted small">by ${book.author}</p>
+                    <small class="text-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Needs reviews
+                    </small>
                 </div>
             </div>
         `;
@@ -455,7 +799,9 @@ async function initDashboard() {
     await Promise.all([
         loadStats(),
         loadGenreChart(),
-        loadUserActivityChart(),
+        loadGrowthChart(),
+        loadRatingChart(),
+        loadReviewTrendChart(),
         loadPopularBooks(),
         loadRecentActivity(),
         loadTopReviewers(),
