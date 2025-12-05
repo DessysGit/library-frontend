@@ -1887,7 +1887,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ========================================
-// PROFILE PAGE FUNCTIONS - REVOLUTIONIZED
+// PROFILE PAGE FUNCTIONS
 // ========================================
 
 // Switch between profile tabs
@@ -2205,3 +2205,169 @@ async function loadUserReviews() {
         }
     });
 })();
+
+// ==========================================
+// NEW HERO SEARCH FUNCTIONALITY
+// ==========================================
+
+// Toggle Advanced Search Panel
+function toggleAdvancedSearch() {
+    const advancedFilters = document.getElementById('advanced-filters');
+    const toggleBtn = document.getElementById('advanced-toggle');
+    
+    if (advancedFilters.classList.contains('show')) {
+        advancedFilters.classList.remove('show');
+        toggleBtn.classList.remove('active');
+    } else {
+        advancedFilters.classList.add('show');
+        toggleBtn.classList.add('active');
+    }
+}
+
+// Quick Search Function - Searches across all fields using OR logic
+async function quickSearch() {
+    const quickSearchInput = document.getElementById('quick-search-input');
+    const searchTerm = quickSearchInput.value.trim();
+    
+    if (!searchTerm) {
+        // If empty, just load all books
+        fetchBooks();
+        return;
+    }
+    
+    // Show the searching message
+    const searchingMsg = document.getElementById('searching-msg');
+    if (searchingMsg) searchingMsg.style.display = 'block';
+    
+    try {
+        showLoadingSpinner();
+        
+        // Perform three separate searches and combine results
+        const [titleResults, authorResults, genreResults] = await Promise.all([
+            fetch(`${API_BASE_URL}/books?title=${encodeURIComponent(searchTerm)}&author=&genre=&page=1&limit=100`, {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(r => r.json()),
+            fetch(`${API_BASE_URL}/books?title=&author=${encodeURIComponent(searchTerm)}&genre=&page=1&limit=100`, {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(r => r.json()),
+            fetch(`${API_BASE_URL}/books?title=&author=&genre=${encodeURIComponent(searchTerm)}&page=1&limit=100`, {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(r => r.json())
+        ]);
+        
+        // Combine and deduplicate results by book ID
+        const allBooks = [...titleResults.books, ...authorResults.books, ...genreResults.books];
+        const uniqueBooks = Array.from(new Map(allBooks.map(book => [book.id, book])).values());
+        
+        // Display the combined results
+        displayQuickSearchResults(uniqueBooks);
+        
+    } catch (error) {
+        console.error('Error in quick search:', error);
+        const bookList = document.getElementById('book-list');
+        if (bookList) {
+            bookList.innerHTML = '<p class="text-center text-danger">Error loading books. Please try again.</p>';
+        }
+    } finally {
+        hideLoadingSpinner();
+        if (searchingMsg) searchingMsg.style.display = 'none';
+    }
+}
+
+// Display quick search results
+function displayQuickSearchResults(books) {
+    const bookList = document.getElementById('book-list');
+    const noResultsMessage = document.getElementById('no-results-message');
+    const pagination = document.getElementById('pagination');
+    
+    // Clear pagination for quick search
+    if (pagination) pagination.innerHTML = '';
+    
+    if (books.length === 0) {
+        if (noResultsMessage) noResultsMessage.style.display = 'block';
+        if (bookList) bookList.innerHTML = '';
+        return;
+    }
+    
+    if (noResultsMessage) noResultsMessage.style.display = 'none';
+    
+    if (bookList) {
+        bookList.innerHTML = '';
+        books.forEach(book => {
+            // Fix: prepend API_BASE_URL if cover is a relative path
+            let coverUrl = book.cover || '';
+            if (coverUrl && coverUrl.startsWith('/uploads/')) {
+                coverUrl = API_BASE_URL + coverUrl;
+            }
+
+            const truncatedDescription = book.description || 'No description available';
+
+            const bookItem = document.createElement('div');
+            bookItem.classList.add('book-item');
+            bookItem.id = `book-${book.id}`;
+            bookItem.innerHTML = `
+                ${userRole === 'admin' ? `
+                    <div class="delete-action">
+                        <button class="btn btn-danger btn-sm" onclick="confirmDeleteBook(${book.id}, '${(book.title || '').replace(/'/g, "\\'")}')">
+                            Delete
+                        </button>
+                    </div>
+                ` : ''}
+                <img src="${coverUrl || '/default-book-cover.png'}" alt="Cover Image" onerror="this.src='/default-book-cover.png'">
+                <div class="details">
+                    <div class="details-content">
+                        <div class="main-info">
+                            <h5>${book.title || 'No Title'}</h5>
+                            <p><strong>Author: </strong> ${book.author || 'Unknown'}</p>
+                            <p class="description-text" title="${book.description || 'No description available'}">${truncatedDescription}</p>
+                        </div>
+                    </div>
+                    <div class="like-dislike-ratings">
+                        <div class="like-dislike-buttons">
+                            <button class="like-button" onclick="handleLikeDislike(${book.id}, 'like')">👍 ${book.likes || 0}</button>
+                            <button class="dislike-button" onclick="handleLikeDislike(${book.id}, 'dislike')">👎 ${book.dislikes || 0}</button>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="showBookDetails(${book.id})">Download</button>
+                        <div class="ratings">
+                            <span>
+                                <i class="fas fa-star text-warning"></i> 
+                                ${book.averageRating ? book.averageRating.toFixed(1) : 'N/A'} (${book.totalRatings || 0} ratings)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            bookList.appendChild(bookItem);
+
+            // Highlight the like/dislike buttons based on user action
+            const userAction = getUserAction(book.id);
+            updateLikeDislikeUI(book.id, book.likes || 0, book.dislikes || 0, userAction);
+        });
+    }
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Clear All Filters
+function clearFilters() {
+    document.getElementById('search-title').value = '';
+    document.getElementById('search-author').value = '';
+    document.getElementById('search-genre').value = '';
+    document.getElementById('quick-search-input').value = '';
+    
+    // Fetch all books
+    fetchBooks();
+    
+    // Show success message
+    const filterActions = document.querySelector('.filter-actions');
+    const clearMsg = document.createElement('div');
+    clearMsg.textContent = 'Filters cleared!';
+    clearMsg.style.cssText = 'color: #1DB954; font-size: 0.85rem; margin-top: 0.5rem; text-align: center;';
+    filterActions.appendChild(clearMsg);
+    
+    setTimeout(() => clearMsg.remove(), 2000);
+}

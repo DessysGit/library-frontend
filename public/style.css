@@ -1322,6 +1322,297 @@ body {
 }
 
 /* ========================================
+   HERO SEARCH SECTION (NEW MODERN DESIGN)
+======================================== */
+.hero-search-section {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+    border-radius: 15px;
+    padding: 2rem 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(29, 185, 84, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-search-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(29, 185, 84, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.hero-search-content {
+    position: relative;
+    z-index: 1;
+}
+
+.hero-search-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    background: linear-gradient(135deg, #1DB954, #17a647);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-search-subtitle {
+    text-align: center;
+    color: #aaa;
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Quick Search Bar */
+.quick-search-wrapper {
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto 1rem auto;
+}
+
+.quick-search-input {
+    width: 100%;
+    padding: 0.9rem 3.5rem 0.9rem 1.2rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(29, 185, 84, 0.3);
+    border-radius: 50px;
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.quick-search-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #1DB954;
+    box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.1);
+}
+
+.quick-search-input::placeholder {
+    color: #888;
+}
+
+.quick-search-btn {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #1DB954, #17a647);
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quick-search-btn:hover {
+    transform: translateY(-50%) scale(1.05);
+    box-shadow: 0 5px 15px rgba(29, 185, 84, 0.4);
+}
+
+/* Advanced Search Toggle */
+.advanced-search-toggle {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.advanced-toggle-btn {
+    background: transparent;
+    border: 1px solid rgba(29, 185, 84, 0.4);
+    color: #1DB954;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.advanced-toggle-btn:hover {
+    background: rgba(29, 185, 84, 0.1);
+    border-color: #1DB954;
+}
+
+.advanced-toggle-btn i {
+    transition: transform 0.3s ease;
+}
+
+.advanced-toggle-btn.active i {
+    transform: rotate(180deg);
+}
+
+/* Advanced Filters Panel */
+.advanced-filters-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease;
+    opacity: 0;
+    margin-top: 0;
+}
+
+.advanced-filters-panel.show {
+    max-height: 500px;
+    opacity: 1;
+    margin-top: 1.5rem;
+}
+
+.advanced-filters-content {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid rgba(29, 185, 84, 0.2);
+}
+
+.filter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    color: #ccc;
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+}
+
+.filter-group input {
+    padding: 0.6rem 0.8rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.filter-group input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #1DB954;
+}
+
+.filter-group input::placeholder {
+    color: #666;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.filter-actions button {
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.filter-apply-btn {
+    background: linear-gradient(135deg, #1DB954, #17a647);
+    color: white;
+}
+
+.filter-apply-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(29, 185, 84, 0.4);
+}
+
+.filter-clear-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #aaa;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.filter-clear-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .hero-search-section {
+        padding: 1.5rem 1rem;
+    }
+    
+    .hero-search-title {
+        font-size: 1.4rem;
+    }
+    
+    .hero-search-subtitle {
+        font-size: 0.85rem;
+    }
+    
+    .quick-search-input {
+        padding: 0.75rem 3rem 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .quick-search-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .filter-row {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .advanced-filters-content {
+        padding: 1rem;
+    }
+    
+    .filter-actions {
+        flex-direction: column;
+    }
+    
+    .filter-actions button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-search-section {
+        padding: 1.25rem 0.75rem;
+        border-radius: 10px;
+    }
+    
+    .hero-search-title {
+        font-size: 1.2rem;
+    }
+    
+    .advanced-toggle-btn {
+        font-size: 0.85rem;
+        padding: 0.45rem 1.2rem;
+    }
+}
+
+/* ========================================
    USER MANAGEMENT & TABLES
 ======================================== */
 .table {

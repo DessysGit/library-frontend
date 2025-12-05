@@ -165,34 +165,67 @@
     </div>
 </div>
 
-        <!-- Search Books Section -->
+        <!-- Search Books Section - NEW HERO DESIGN -->
 <div id="search-books" class="mt-4" style="display: none;">
-    <div class="card bg-dark text-white shadow-lg p-4 border-0">
-      <div class="card-body text-center">
-        <h2 class="card-title text-success mb-2">
-          <i class="fas fa-search"></i> Search Books
-        </h2>
-        <p class="text-muted mb-3">You can fill in one or more fields — none are required.</p>
-  
-        <form onsubmit="fetchBooks(); return false;">
-          <div class="row">
-            <div class="col-md-4 mb-3">
-              <label for="search-title" class="float-left">Title</label>
-              <input type="text" id="search-title" class="form-control" placeholder="e.g., The Alchemist">
+    <!-- Hero Search Section -->
+    <div class="hero-search-section">
+        <div class="hero-search-content">
+            <h2 class="hero-search-title">
+                <i class="fas fa-book-open"></i> Discover Your Next Great Read
+            </h2>
+            <p class="hero-search-subtitle">Search thousands of books instantly</p>
+            
+            <!-- Quick Search Bar -->
+            <div class="quick-search-wrapper">
+                <input 
+                    type="text" 
+                    id="quick-search-input" 
+                    class="quick-search-input" 
+                    placeholder="Search by title, author, or genre..."
+                    onkeypress="if(event.key === 'Enter') quickSearch()"
+                >
+                <button class="quick-search-btn" onclick="quickSearch()" aria-label="Search">
+                    <i class="fas fa-search"></i>
+                </button>
             </div>
-            <div class="col-md-4 mb-3">
-              <label for="search-author" class="float-left">Author</label>
-              <input type="text" id="search-author" class="form-control" placeholder="e.g., Paulo Coelho">
+            
+            <!-- Advanced Search Toggle -->
+            <div class="advanced-search-toggle">
+                <button class="advanced-toggle-btn" onclick="toggleAdvancedSearch()" id="advanced-toggle">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Advanced Filters</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
             </div>
-            <div class="col-md-4 mb-3">
-              <label for="search-genre" class="float-left">Genre</label>
-              <input type="text" id="search-genre" class="form-control" placeholder="e.g., Fiction">
+            
+            <!-- Advanced Filters Panel (Hidden by default) -->
+            <div class="advanced-filters-panel" id="advanced-filters">
+                <div class="advanced-filters-content">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="search-title">Title</label>
+                            <input type="text" id="search-title" placeholder="e.g., The Alchemist">
+                        </div>
+                        <div class="filter-group">
+                            <label for="search-author">Author</label>
+                            <input type="text" id="search-author" placeholder="e.g., Paulo Coelho">
+                        </div>
+                        <div class="filter-group">
+                            <label for="search-genre">Genre</label>
+                            <input type="text" id="search-genre" placeholder="e.g., Fiction">
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="filter-apply-btn" onclick="fetchBooks()">
+                            <i class="fas fa-search"></i> Apply Filters
+                        </button>
+                        <button class="filter-clear-btn" onclick="clearFilters()">
+                            <i class="fas fa-times"></i> Clear All
+                        </button>
+                    </div>
+                </div>
             </div>
-          </div>
-  
-          <button type="submit" class="btn btn-success w-100">Search</button>
-        </form>
-      </div>
+        </div>
     </div>
   
     <!-- Book List -->
