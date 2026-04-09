@@ -28,6 +28,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Show loading state initially
     showLoadingState();
     
+    // Hide all content initially to prevent flash
+    const allSections = document.querySelectorAll('#search-books, #newsletter-section, #footer, #main-content, #hamburger-button, #chat-icon');
+    allSections.forEach(el => {
+        if (el) el.style.display = 'none';
+    });
+    
     try {
         // Check authentication status
         const authCheckPromise = checkAuthStatus();
@@ -47,8 +53,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         hideLoadingState();
         
         if (!isAuthenticated) {
-            // User is not authenticated - redirect to auth page
-            window.location.href = 'auth.html';
+            // User is not authenticated - redirect to auth page immediately
+            window.location.replace('auth.html');
             return;
         }
         
@@ -81,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Critical error during initialization:', error);
         hideLoadingState();
         // Redirect to auth page on error
-        window.location.href = 'auth.html';
+        window.location.replace('auth.html');
         return;
     }
 
@@ -348,21 +354,11 @@ async function resendVerification() {
 }
 
 // Check if we're on the email verification page
-document.addEventListener('DOMContentLoaded', () => {
-    // Check if this is a verification page load
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    
-    if (token && window.location.pathname.includes('verify-email')) {
-        // This is handled by the server route /verify-email
-        // No additional JavaScript needed
-        return;
-    }
-    
-    // Continue with normal page initialization
-    checkAuthStatus();
-    setupOutsideClickListener();
-});
+// This code runs separately from the main DOMContentLoaded
+if (window.location.search.includes('token') && window.location.pathname.includes('verify-email')) {
+    // Email verification is handled by the server route /verify-email
+    // No additional JavaScript needed
+}
 
 // Function to handle logout
 async function logout() {
@@ -1850,8 +1846,8 @@ async function initializeChatbot() {
 
 // Call the necessary functions on page load
 document.addEventListener('DOMContentLoaded', () => {
-    // Check initial auth status and handle burger menu
-    checkAuthStatus();
+    // Setup outside click listener only
+    // checkAuthStatus is already called in the main DOMContentLoaded above
     setupOutsideClickListener();
 });
 
