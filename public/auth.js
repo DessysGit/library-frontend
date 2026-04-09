@@ -17,7 +17,7 @@ const API_BASE_URL = (() => {
 document.addEventListener('DOMContentLoaded', async () => {
     // If user is already logged in, redirect to main app
     try {
-        const response = await fetch(`${API_BASE_URL}/check-auth`, {
+        const response = await fetch(`${API_BASE_URL}/current-user`, {
             method: 'GET',
             credentials: 'include'
         });
