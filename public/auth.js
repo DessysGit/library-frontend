@@ -15,6 +15,8 @@ const API_BASE_URL = (() => {
 
 // Check if user is already authenticated on page load
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🔍 auth.html loaded - checking if user is already authenticated...');
+    
     // If user is already logged in, redirect to main app
     try {
         const response = await fetch(`${API_BASE_URL}/current-user`, {
@@ -22,12 +24,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             credentials: 'include'
         });
         
+        console.log('🔍 Auth check response status:', response.status);
+        
         if (response.ok) {
+            const user = await response.json();
+            console.log('✅ User is authenticated:', user);
             // User is authenticated, redirect to main app
             window.location.href = 'index.html';
+        } else {
+            console.log('❌ User is NOT authenticated');
         }
     } catch (error) {
-        console.log('Not authenticated, staying on auth page');
+        console.log('❌ Auth check error:', error);
+        console.log('Staying on auth page');
     }
 });
 
@@ -161,8 +170,15 @@ async function login() {
         });
 
         if (response.ok) {
-            // Login successful - redirect to main app
-            window.location.href = 'index.html';
+            // Login successful
+            const user = await response.json();
+            console.log('Login successful:', user);
+            
+            // Wait a moment for session to be fully established
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Use replace to prevent back button issues
+            window.location.replace('index.html');
         } else {
             const data = await response.json();
             let errorMessage = data.error || data.message || 'Login failed';
