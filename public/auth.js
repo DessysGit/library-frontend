@@ -13,6 +13,24 @@ const API_BASE_URL = (() => {
   }
 })();
 
+// ─── JWT Auto-Inject ───────────────────────────────────────────────────────
+// Intercept every fetch() call on this page. If the request targets the
+// Render backend, automatically attach the stored JWT.
+(function injectJwtOnBackendRequests() {
+  const _fetch = window.fetch;
+  window.fetch = function(input, init = {}) {
+    const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : String(input));
+    const isBackendCall = API_BASE_URL && url.startsWith(API_BASE_URL);
+    if (isBackendCall) {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        init.headers = Object.assign({ 'Authorization': `Bearer ${token}` }, init.headers || {});
+      }
+    }
+    return _fetch.call(this, input, init);
+  };
+})();
+
 // Check if user is already authenticated on page load
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🔍 auth.html loaded - checking if user is already authenticated...');
@@ -20,11 +38,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // If user is already logged in, redirect to main app
     try {
         const token = localStorage.getItem('authToken');
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
         const response = await fetch(`${API_BASE_URL}/current-user`, {
             method: 'GET',
-            credentials: 'include',
-            headers
+            credentials: 'include'
         });
         
         console.log('🔍 Auth check response status:', response.status);
@@ -189,12 +205,9 @@ async function login() {
             const maxRetries = 8;
             const verifyAndRedirect = async () => {
                 try {
-                    const token = localStorage.getItem('authToken');
-                    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
                     const check = await fetch(`${API_BASE_URL}/current-user`, {
                         method: 'GET',
-                        credentials: 'include',
-                        headers
+                        credentials: 'include'
                     });
                     if (check.ok) {
                         window.location.replace('index.html');

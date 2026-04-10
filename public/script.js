@@ -16,6 +16,25 @@ const API_BASE_URL = (() => {
   }
 })();
 
+// ─── JWT Auto-Inject ───────────────────────────────────────────────────────
+// Intercept every fetch() call. If the request targets our Render backend,
+// automatically attach the stored JWT as an Authorization header.
+// This means we never have to remember to add headers in individual calls.
+(function injectJwtOnBackendRequests() {
+  const _fetch = window.fetch;
+  window.fetch = function(input, init = {}) {
+    const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : String(input));
+    const isBackendCall = API_BASE_URL && url.startsWith(API_BASE_URL);
+    if (isBackendCall) {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        init.headers = Object.assign({ 'Authorization': `Bearer ${token}` }, init.headers || {});
+      }
+    }
+    return _fetch.call(this, input, init);
+  };
+})();
+
 
 // Define the seed admin username
 const seedAdminUsername = 'admin';
@@ -635,8 +654,7 @@ async function fetchBooks(query = "", page = 1) {
         showLoadingSpinner();
         
         const response = await fetch(`${API_BASE_URL}/books?${searchQuery}`, {
-            credentials: 'include',
-            headers: getAuthHeaders()
+            credentials: 'include'
         });
         
         if (!response.ok) {
@@ -1484,8 +1502,7 @@ function showProfileSection() {
 async function checkAuthStatus() {
     try {
         const response = await fetch(`${API_BASE_URL}/current-user`, { 
-            credentials: 'include',
-            headers: getAuthHeaders()
+            credentials: 'include'
         });
         if (response.ok) {
             const user = await response.json();
