@@ -174,11 +174,36 @@ async function login() {
             const user = await response.json();
             console.log('Login successful:', user);
             
-            // Wait a moment for session to be fully established
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Use replace to prevent back button issues
-            window.location.replace('index.html');
+            // Verify session cookie is actually saved before redirecting.
+            // A fixed timeout is unreliable across network speeds (especially Render cold starts).
+            let retries = 0;
+            const maxRetries = 8;
+            const verifyAndRedirect = async () => {
+                try {
+                    const check = await fetch(`${API_BASE_URL}/current-user`, {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    if (check.ok) {
+                        window.location.replace('index.html');
+                    } else if (retries < maxRetries) {
+                        retries++;
+                        setTimeout(verifyAndRedirect, 400);
+                    } else {
+                        hideButtonSpinner(loginButton);
+                        displayMessage('login-messages', 'Session could not be established. Please try again.', 'error');
+                    }
+                } catch (e) {
+                    if (retries < maxRetries) {
+                        retries++;
+                        setTimeout(verifyAndRedirect, 400);
+                    } else {
+                        hideButtonSpinner(loginButton);
+                        displayMessage('login-messages', 'Network error verifying session. Please try again.', 'error');
+                    }
+                }
+            };
+            setTimeout(verifyAndRedirect, 300);
         } else {
             const data = await response.json();
             let errorMessage = data.error || data.message || 'Login failed';
@@ -192,9 +217,11 @@ async function login() {
     } catch (error) {
         console.error('Login error:', error);
         displayMessage('login-messages', 'Network error. Please try again.', 'error');
-    } finally {
+        // Only re-enable button on outer catch (login request itself failed)
         hideButtonSpinner(loginButton);
     }
+    // Note: no finally here - on success the verify loop manages button state
+    // to keep the spinner going while we confirm the session is saved.
 }
 
 // Handle Registration
