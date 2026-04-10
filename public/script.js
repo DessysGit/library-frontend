@@ -141,9 +141,16 @@ function hideLoadingState() {
     }
 }
 
+// Helper: get auth headers with JWT token if available
+function getAuthHeaders(extra = {}) {
+    const token = localStorage.getItem('authToken');
+    const headers = { 'Content-Type': 'application/json', ...extra };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+}
+
 // Function to check if the user is logged in
 function isUserLoggedIn() {
-    // Check if a token is present in localStorage
     return localStorage.getItem('authToken') !== null;
 }
 
@@ -375,7 +382,8 @@ async function logout() {
             if (loginUsername) loginUsername.value = "";
             if (loginPassword) loginPassword.value = "";
 
-            // Clear only auth-related localStorage items - DON'T use localStorage.clear()
+            // Clear auth token and auth-related localStorage items
+            localStorage.removeItem('authToken');
             localStorage.removeItem('authState');
             localStorage.removeItem('userData');
 
@@ -628,9 +636,7 @@ async function fetchBooks(query = "", page = 1) {
         
         const response = await fetch(`${API_BASE_URL}/books?${searchQuery}`, {
             credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: getAuthHeaders()
         });
         
         if (!response.ok) {
@@ -1477,7 +1483,10 @@ function showProfileSection() {
 // Function to check initial auth status
 async function checkAuthStatus() {
     try {
-        const response = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
+        const response = await fetch(`${API_BASE_URL}/current-user`, { 
+            credentials: 'include',
+            headers: getAuthHeaders()
+        });
         if (response.ok) {
             const user = await response.json();
             userRole = user.role;

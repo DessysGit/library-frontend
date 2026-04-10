@@ -19,9 +19,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // If user is already logged in, redirect to main app
     try {
+        const token = localStorage.getItem('authToken');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
         const response = await fetch(`${API_BASE_URL}/current-user`, {
             method: 'GET',
-            credentials: 'include'
+            credentials: 'include',
+            headers
         });
         
         console.log('🔍 Auth check response status:', response.status);
@@ -33,6 +36,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = 'index.html';
         } else {
             console.log('❌ User is NOT authenticated');
+            // Clear any stale token
+            localStorage.removeItem('authToken');
         }
     } catch (error) {
         console.log('❌ Auth check error:', error);
@@ -173,16 +178,23 @@ async function login() {
             // Login successful
             const user = await response.json();
             console.log('Login successful:', user);
-            
-            // Verify session cookie is actually saved before redirecting.
-            // A fixed timeout is unreliable across network speeds (especially Render cold starts).
+
+            // Store JWT token for cross-origin requests (Netlify → Render)
+            if (user.token) {
+                localStorage.setItem('authToken', user.token);
+            }
+
+            // Verify the token works before redirecting
             let retries = 0;
             const maxRetries = 8;
             const verifyAndRedirect = async () => {
                 try {
+                    const token = localStorage.getItem('authToken');
+                    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
                     const check = await fetch(`${API_BASE_URL}/current-user`, {
                         method: 'GET',
-                        credentials: 'include'
+                        credentials: 'include',
+                        headers
                     });
                     if (check.ok) {
                         window.location.replace('index.html');
