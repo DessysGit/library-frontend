@@ -3231,6 +3231,166 @@ a:focus,
    END OF STYLESHEET
 ======================================== */
 
+/* ========================================
+   RECOMMENDATION IMPROVEMENTS
+======================================== */
+
+/* Skeleton Loading Animation */
+.skeleton-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-img {
+    height: 250px;
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+}
+
+.skeleton-title {
+    height: 20px;
+    width: 80%;
+    margin-bottom: 10px;
+}
+
+.skeleton-text {
+    height: 14px;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.skeleton-text:last-of-type {
+    width: 60%;
+}
+
+.skeleton-button {
+    height: 35px;
+    width: 100%;
+    margin-top: 10px;
+    border-radius: 4px;
+}
+
+/* Recommendation Card Enhancements */
+.recommendation-card {
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.recommendation-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Why Recommended Badge */
+.recommendation-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    max-width: calc(100% - 20px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recommendation-badge i {
+    margin-right: 4px;
+}
+
+.badge-success {
+    background: rgba(40, 167, 69, 0.9);
+    color: white;
+}
+
+.badge-danger {
+    background: rgba(220, 53, 69, 0.9);
+    color: white;
+}
+
+.badge-warning {
+    background: rgba(255, 193, 7, 0.9);
+    color: #212529;
+}
+
+.badge-info {
+    background: rgba(23, 162, 184, 0.9);
+    color: white;
+}
+
+/* Card Author Styling */
+.card-author {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+/* Genre Badges */
+.badge-sm {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+}
+
+/* Refresh Button Animation */
+#refresh-recommendations-btn:hover {
+    transform: rotate(180deg);
+    transition: transform 0.6s ease;
+}
+
+#refresh-recommendations-btn .fa-sync-alt,
+#refresh-recommendations-btn .fa-spinner {
+    transition: transform 0.6s ease;
+}
+
+/* Empty State Styling */
+.text-center .fa-book-reader,
+.text-center .fa-sign-in-alt,
+.text-center .fa-exclamation-triangle {
+    opacity: 0.5;
+}
+
+/* Responsive Adjustments for Recommendations */
+@media (max-width: 768px) {
+    .recommendation-badge {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+    
+    .skeleton-img {
+        height: 200px;
+    }
+}
+
+/* ========================================
+   END OF RECOMMENDATION IMPROVEMENTS
+======================================== */
+
 /* 
    Des2 Library
    
@@ -3246,4 +3406,5 @@ a:focus,
    9. Accessibility
    10. Animations
    11. Utility Classes
+   12. Recommendation Improvements
 */

@@ -671,29 +671,120 @@
       }
     }
 
-    // Fetch and display recommendations
-    async function fetchRecommendations() {
-      const container = document.querySelector('#recommendations-container');
+    // Function to determine recommendation reason
+    function getRecommendationReason(book, userLikes) {
+      // Check if same author as liked books
+      if (userLikes && userLikes.some(liked => liked.author === book.author)) {
+        const likedBook = userLikes.find(liked => liked.author === book.author);
+        return { icon: 'fa-user-edit', text: `Same author as "${likedBook.title}"`, color: 'success' };
+      }
+      
+      // High similarity score
+      if (book.similarity_score && book.similarity_score > 0.8) {
+        return { icon: 'fa-heart', text: 'Similar to books you loved', color: 'danger' };
+      }
+      
+      // High rating
+      if (book.avg_rating >= 4.5) {
+        return { icon: 'fa-star', text: 'Highly rated', color: 'warning' };
+      }
+      
+      // Popular book
+      if (book.likes >= 10) {
+        return { icon: 'fa-fire', text: 'Trending now', color: 'danger' };
+      }
+      
+      // Default
+      return { icon: 'fa-lightbulb', text: 'Recommended for you', color: 'info' };
+    }
 
-      // Show loading message immediately
-      container.innerHTML = `<p class="text-muted text-center">Loading recommendations...</p>`;
+    // Show loading skeleton
+    function showRecommendationsSkeleton() {
+      const container = document.querySelector('#recommendations-container');
+      const row = document.createElement('div');
+      row.classList.add('row', 'g-4');
+      row.id = 'skeleton-loader';
+      
+      for (let i = 0; i < 4; i++) {
+        row.innerHTML += `
+          <div class="col-md-3">
+            <div class="card skeleton-card">
+              <div class="skeleton skeleton-img"></div>
+              <div class="card-body">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-button"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      container.innerHTML = '';
+      container.appendChild(row);
+    }
+
+    // Fetch and display recommendations
+    async function fetchRecommendations(refresh = false) {
+      const container = document.querySelector('#recommendations-container');
+      const refreshBtn = document.getElementById('refresh-recommendations-btn');
+
+      // Show loading skeleton
+      showRecommendationsSkeleton();
+      
+      // Disable refresh button while loading
+      if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/recommendations?bookId=${currentBookId}`, { credentials: 'include' });
+        const timestamp = refresh ? `&t=${Date.now()}` : '';
+        const response = await fetch(`${API_BASE_URL}/recommendations?bookId=${currentBookId}${timestamp}`, { credentials: 'include' });
         
         if (!response.ok) {
-          container.innerHTML = `<p class="text-muted text-center">Login to see recommendations.</p>`;
+          container.innerHTML = `
+            <div class="alert alert-info text-center">
+              <i class="fas fa-sign-in-alt fa-2x mb-3"></i>
+              <h5>Sign in to see personalized recommendations</h5>
+              <p class="mb-0">We'll suggest books based on your reading preferences</p>
+            </div>
+          `;
           return;
         }
 
         const data = await response.json();
         const recommendations = data.recommendations;
-        container.innerHTML = ""; // clear loading text
+        container.innerHTML = ""; // clear skeleton
 
         if (!recommendations || recommendations.length === 0) {
-          container.innerHTML = `<p class="text-muted text-center">No recommendations available at the moment.</p>`;
+          // Show better empty state with staff picks or popular books
+          container.innerHTML = `
+            <div class="text-center py-5">
+              <i class="fas fa-book-reader fa-3x text-muted mb-3"></i>
+              <h5 class="text-white">No recommendations yet</h5>
+              <p class="text-muted">Start liking books to get personalized recommendations!</p>
+              <a href="index.html" class="btn btn-primary mt-3">
+                <i class="fas fa-search mr-2"></i>Browse All Books
+              </a>
+            </div>
+          `;
           return;
         }
+
+        // Create recommendations container with refresh button
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'd-flex justify-content-between align-items-center mb-3';
+        headerDiv.innerHTML = `
+          <h6 class="text-success mb-0">
+            <i class="fas fa-magic mr-2"></i>${recommendations.length} Picked for You
+          </h6>
+          <button id="refresh-recommendations-btn" class="btn btn-sm btn-outline-success" onclick="fetchRecommendations(true)">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        `;
+        container.appendChild(headerDiv);
 
         const row = document.createElement('div');
         row.classList.add('row', 'g-4');
@@ -705,19 +796,47 @@
           }
 
           const truncatedDescription = truncateText(rec.description || "No description available", 100);
+          
+          // Get recommendation reason
+          const reason = getRecommendationReason(rec, data.userLikes || []);
+          
+          // Create genres badges
+          const genres = rec.genres ? rec.genres.split(',').slice(0, 2).map(g => 
+            `<span class="badge badge-secondary badge-sm">${g.trim()}</span>`
+          ).join(' ') : '';
 
           row.innerHTML += `
             <div class="col-md-3">
-              <div class="card">
+              <div class="card recommendation-card">
+                <!-- Why Recommended Badge -->
+                <div class="recommendation-badge badge-${reason.color}">
+                  <i class="fas ${reason.icon}"></i> ${reason.text}
+                </div>
+                
                 <img src="${coverUrl || '/default-book-cover.png'}" 
                      class="card-img-top" 
-                     alt="Book Cover"
+                     alt="${rec.title}"
                      onerror="this.src='/default-book-cover.png'">
+                     
                 <div class="card-body">
                   <h5 class="card-title">${rec.title}</h5>
-                  <p class="card-text">${truncatedDescription}</p>
-                  <a href="book-details.html?bookId=${rec.id}" class="btn w-100">
-                    <i class="fas fa-info-circle"></i> View
+                  <p class="card-author text-muted">
+                    <i class="fas fa-user fa-sm mr-1"></i>${rec.author}
+                  </p>
+                  
+                  ${genres ? `<div class="mb-2">${genres}</div>` : ''}
+                  
+                  ${rec.avg_rating > 0 ? `
+                    <div class="mb-2">
+                      <span class="text-warning">★</span> 
+                      <span class="text-light">${rec.avg_rating.toFixed(1)}/5</span>
+                    </div>
+                  ` : ''}
+                  
+                  <p class="card-text small">${truncatedDescription}</p>
+                  
+                  <a href="book-details.html?bookId=${rec.id}" class="btn btn-success btn-sm w-100">
+                    <i class="fas fa-book-open mr-1"></i>View Details
                   </a>
                 </div>
               </div>
@@ -727,8 +846,23 @@
 
         container.appendChild(row);
       } catch (error) {
-        container.innerHTML = `<p class="text-muted text-center">Login to see recommendations.</p>`;
+        container.innerHTML = `
+          <div class="alert alert-danger text-center">
+            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+            <h5>Oops! Couldn't load recommendations</h5>
+            <p class="mb-3">Something went wrong while fetching recommendations</p>
+            <button class="btn btn-outline-danger" onclick="fetchRecommendations(true)">
+              <i class="fas fa-redo mr-2"></i>Try Again
+            </button>
+          </div>
+        `;
         console.error('Error fetching recommendations:', error);
+      } finally {
+        // Re-enable refresh button
+        if (refreshBtn) {
+          refreshBtn.disabled = false;
+          refreshBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i>Refresh';
+        }
       }
     }
 
