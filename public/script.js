@@ -1038,24 +1038,10 @@ function clearAddBookFields() {
     updateUploadLabel('book-file',  'pdf-label-text',   'pdf-upload-area');
 }
 
-// Function to edit a book
-async function editBook(bookId) {
-    const title = prompt('Enter new title:');
-    const author = prompt('Enter new author:');
-    const description = prompt('Enter new description:');
-    if (title && author && description) {
-        const response = await fetch(`${API_BASE_URL}/books/${bookId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, author, description })
-        });
-        if (response.ok) {
-            fetchBooks();
-        } else {
-            const errorMessage = await response.text();
-            alert('Failed to edit book: ' + errorMessage);
-        }
-    }
+// Function to edit a book — redirects to book-details where the proper
+// admin edit panel lives. The old prompt()-based version is removed.
+function editBook(bookId) {
+    window.location.href = `book-details.html?bookId=${bookId}`;
 }
 
 // Function to delete a book
@@ -2189,62 +2175,123 @@ function setDefaultProfilePicture() {
     if (profilePic) profilePic.src = defaultImage;
 }
 
-// Load user activity (placeholder)
+// Load real user activity from the API
 async function loadUserActivity() {
     const activityList = document.getElementById('recent-activity-list');
     if (!activityList) return;
-    
+
     activityList.innerHTML = '<div class="activity-loading"><i class="fas fa-spinner fa-spin"></i> Loading activity...</div>';
-    
-    // Simulate loading delay
-    setTimeout(() => {
-        activityList.innerHTML = `
-            <div class="activity-item">
-                <div><strong>📖 Downloaded:</strong> "The Great Gatsby"</div>
-                <div class="activity-item-time">2 days ago</div>
-            </div>
-            <div class="activity-item">
-                <div><strong>⭐ Rated:</strong> "1984" - 5 stars</div>
-                <div class="activity-item-time">5 days ago</div>
-            </div>
-            <div class="activity-item">
-                <div><strong>👍 Liked:</strong> "To Kill a Mockingbird"</div>
-                <div class="activity-item-time">1 week ago</div>
-            </div>
-            <div class="activity-item">
-                <div><strong>📚 Added to favorites:</strong> Science Fiction genre</div>
-                <div class="activity-item-time">2 weeks ago</div>
-            </div>
-        `;
-    }, 1000);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/activity`, { credentials: 'include' });
+        if (!response.ok) throw new Error('Failed');
+        const activities = await response.json();
+
+        if (activities.length === 0) {
+            activityList.innerHTML = `
+                <div class="activity-item" style="border-left-color:#888;">
+                    <div style="color:#aaa;text-align:center;padding:1rem;">
+                        <i class="fas fa-history" style="font-size:2rem;opacity:.3;"></i>
+                        <p class="mt-2 mb-0">No activity yet. Start exploring books!</p>
+                    </div>
+                </div>`;
+            return;
+        }
+
+        activityList.innerHTML = activities.map(item => {
+            const timeAgo = getTimeAgo(new Date(item.createdAt));
+            const bookLink = `<a href="book-details.html?bookId=${item.bookId}" style="color:#1DB954;">${item.bookTitle}</a>`;
+            if (item.type === 'review') {
+                const stars = '\u2B50'.repeat(item.rating);
+                return `
+                    <div class="activity-item">
+                        <div><strong>\uD83D\uDCDD Reviewed:</strong> ${bookLink}</div>
+                        <div style="color:#ffd700;margin-top:4px;">${stars} ${item.rating}/5</div>
+                        <div class="activity-item-time">${timeAgo}</div>
+                    </div>`;
+            }
+            if (item.type === 'like') {
+                return `
+                    <div class="activity-item" style="border-left-color:#1DB954;">
+                        <div><strong>\uD83D\uDC4D Liked:</strong> ${bookLink}</div>
+                        <div class="activity-item-time">${timeAgo}</div>
+                    </div>`;
+            }
+            if (item.type === 'dislike') {
+                return `
+                    <div class="activity-item" style="border-left-color:#dc3545;">
+                        <div><strong>\uD83D\uDC4E Disliked:</strong> ${bookLink}</div>
+                        <div class="activity-item-time">${timeAgo}</div>
+                    </div>`;
+            }
+            return '';
+        }).join('');
+    } catch (error) {
+        console.error('Error loading activity:', error);
+        activityList.innerHTML = '<div class="activity-loading" style="color:#dc3545;">Failed to load activity.</div>';
+    }
 }
 
-// Load user reviews (placeholder)
+// Relative time helper — used by both activity and reviews tabs
+function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    if (seconds < 60)  return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60)  return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24)    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30)     return `${days} day${days > 1 ? 's' : ''} ago`;
+    const months = Math.floor(days / 30);
+    if (months < 12)   return `${months} month${months > 1 ? 's' : ''} ago`;
+    return `${Math.floor(months / 12)} year${Math.floor(months / 12) > 1 ? 's' : ''} ago`;
+}
+
+// Load real user reviews from the API
 async function loadUserReviews() {
     const reviewsList = document.getElementById('user-reviews-list');
     if (!reviewsList) return;
-    
+
     reviewsList.innerHTML = '<div class="reviews-loading"><i class="fas fa-spinner fa-spin"></i> Loading reviews...</div>';
-    
-    // Simulate loading delay
-    setTimeout(() => {
-        reviewsList.innerHTML = `
-            <div class="review-item">
-                <div><strong>⭐⭐⭐⭐⭐ "1984" by George Orwell</strong></div>
-                <div style="color: #ccc; margin-top: 0.5rem;">A masterpiece that remains relevant today. Orwell's vision of a dystopian future is both terrifying and thought-provoking.</div>
-                <div class="review-item-time">Reviewed 5 days ago</div>
-            </div>
-            <div class="review-item">
-                <div><strong>⭐⭐⭐⭐ "The Great Gatsby" by F. Scott Fitzgerald</strong></div>
-                <div style="color: #ccc; margin-top: 0.5rem;">Beautifully written tale of the American Dream. The prose is stunning and the characters are unforgettable.</div>
-                <div class="review-item-time">Reviewed 2 weeks ago</div>
-            </div>
-        `;
-        
-        // Update reviews count
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/my-reviews`, { credentials: 'include' });
+        if (!response.ok) throw new Error('Failed');
+        const reviews = await response.json();
+
         const reviewsCount = document.getElementById('reviews-count');
-        if (reviewsCount) reviewsCount.innerText = '2';
-    }, 1000);
+        if (reviewsCount) reviewsCount.innerText = reviews.length;
+
+        if (reviews.length === 0) {
+            reviewsList.innerHTML = `
+                <div class="review-item" style="border-left-color:#888;">
+                    <div style="color:#aaa;text-align:center;padding:1rem;">
+                        <i class="fas fa-star" style="font-size:2rem;opacity:.3;"></i>
+                        <p class="mt-2 mb-0">No reviews yet. Share your thoughts on a book!</p>
+                    </div>
+                </div>`;
+            return;
+        }
+
+        reviewsList.innerHTML = reviews.map(r => {
+            const stars = '\u2B50'.repeat(r.rating);
+            const timeAgo = getTimeAgo(new Date(r.createdAt));
+            const bookLink = `<a href="book-details.html?bookId=${r.bookId}" style="color:#1DB954;">${r.bookTitle}</a>`;
+            const preview = r.text.length > 120 ? r.text.slice(0, 120) + '\u2026' : r.text;
+            return `
+                <div class="review-item">
+                    <div>
+                        <strong>${stars} ${bookLink}</strong>
+                        <small style="color:#888;"> by ${r.author}</small>
+                    </div>
+                    <div style="color:#ccc;margin-top:.5rem;font-size:.9rem;">${preview}</div>
+                    <div class="review-item-time">${timeAgo}</div>
+                </div>`;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading reviews:', error);
+        reviewsList.innerHTML = '<div class="reviews-loading" style="color:#dc3545;">Failed to load reviews.</div>';
+    }
 }
 
 // Password strength indicator for new password in profile
