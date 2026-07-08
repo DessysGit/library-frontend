@@ -3496,6 +3496,67 @@ a:focus,
 ======================================== */
 
 /* ========================================
+   TOAST NOTIFICATIONS
+======================================== */
+#toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    pointer-events: none;
+}
+.toast-msg {
+    padding: .75rem 1.25rem;
+    border-radius: 8px;
+    font-size: .9rem;
+    max-width: 320px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.45);
+    pointer-events: all;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .25s ease, transform .25s ease;
+}
+.toast-msg.show    { opacity: 1; transform: translateY(0); }
+.toast-msg.success { background: #1a3d28; border-left: 4px solid #1DB954; color: #e0e0e0; }
+.toast-msg.error   { background: #3d1a1a; border-left: 4px solid #dc3545; color: #e0e0e0; }
+.toast-msg.info    { background: #1a2a3d; border-left: 4px solid #4a9eff; color: #e0e0e0; }
+
+/* ========================================
+   CONFIRM MODAL
+======================================== */
+#confirm-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+#confirm-modal-overlay.active { display: flex; }
+#confirm-modal {
+    background: #1e1e2e;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+    animation: modal-in .2s ease;
+}
+@keyframes modal-in {
+    from { opacity: 0; transform: scale(.95); }
+    to   { opacity: 1; transform: scale(1); }
+}
+#confirm-modal h4 { color: #e0e0e0; margin-bottom: .75rem; }
+#confirm-modal p  { color: #aaa; margin-bottom: 1.5rem; font-size: .95rem; }
+#confirm-modal .modal-buttons { display: flex; gap: 1rem; justify-content: center; }
+
+/* ========================================
    ADD BOOK SECTION - FILE UPLOAD INPUTS
 ======================================== */
 #add-book-section .upload-row {
