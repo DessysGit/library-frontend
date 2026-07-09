@@ -756,14 +756,19 @@ async function addBook() {
     if (!title)    errors.push('Book title is required.');
     if (!author)   errors.push('Author name is required.');
     if (!bookFile) errors.push('A PDF book file is required.');
-    else if (bookFile.type !== 'application/pdf' && !bookFile.name.endsWith('.pdf')) errors.push('Book file must be a PDF.');
-    if (bookCover && !bookCover.type.startsWith('image/')) errors.push('Cover must be an image file.');
+    else if (bookFile.type !== 'application/pdf' && !bookFile.name.endsWith('.pdf'))
+        errors.push('Book file must be a PDF.');
+    if (bookCover && !bookCover.type.startsWith('image/'))
+        errors.push('Cover must be an image file (JPG, PNG, etc.).');
 
     if (errors.length > 0) { displayMessage(msgBox, errors.join('<br>'), 'error'); return; }
 
     document.getElementById(msgBox).innerHTML = '';
     showButtonSpinner(addBtn, '<i class="fas fa-plus-circle mr-2"></i>Add Book');
-    displayMessage(msgBox, '<i class="fas fa-spinner fa-spin mr-2"></i>Uploading… Please wait. Large files may take a moment.', 'info');
+    displayMessage(msgBox,
+        '<i class="fas fa-spinner fa-spin mr-2"></i>Uploading… Please wait, this may take a moment for large files.',
+        'info'
+    );
 
     const genres = genresRaw ? genresRaw.split(',').map(g => g.trim()).filter(Boolean) : [];
     const formData = new FormData();
