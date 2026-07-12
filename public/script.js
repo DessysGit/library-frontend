@@ -16,10 +16,11 @@ const API_BASE_URL = (() => {
   }
 })();
 
-// ─── JWT Auto-Inject ───────────────────────────────────────────────────────
+// ─── JWT Auto-Inject & 401 Handler ─────────────────────────────────────────
 // Intercept every fetch() call. If the request targets our Render backend,
 // automatically attach the stored JWT as an Authorization header.
-// This means we never have to remember to add headers in individual calls.
+// Also handles 401 responses globally — if the token is expired/invalid,
+// clear it and redirect to auth page.
 (function injectJwtOnBackendRequests() {
   const _fetch = window.fetch;
   window.fetch = function(input, init = {}) {
@@ -31,10 +32,22 @@ const API_BASE_URL = (() => {
         init.headers = Object.assign({ 'Authorization': `Bearer ${token}` }, init.headers || {});
       }
     }
-    return _fetch.call(this, input, init);
+    return _fetch.call(this, input, init).then(response => {
+      // Global 401 handling: expired/invalid JWT → redirect to auth
+      if (isBackendCall && response.status === 401) {
+        const currentPage = window.location.pathname.split('/').pop();
+        // Don't redirect if already on auth page or if this IS the login/register endpoint
+        if (currentPage !== 'auth.html' && !url.endsWith('/login') && !url.endsWith('/register')) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('authState');
+          localStorage.removeItem('userData');
+          window.location.replace('auth.html');
+        }
+      }
+      return response;
+    });
   };
 })();
-
 
 // Define the seed admin username
 const seedAdminUsername = 'admin';

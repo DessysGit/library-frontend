@@ -369,31 +369,23 @@
         const dislikes = book.dislikes || 0;
         updateLikeUI(likes, dislikes, getUserAction(currentBookId));
 
-        // Check if user is admin
-        const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
-        if (userRes.ok) {
-          const user = await userRes.json();
-          if (user.role === 'admin') {
-            // Show admin controls
-            document.getElementById('sidebar-admin-controls').style.display = 'block';
-            
-            // Pre-fill edit form
-            populateEditForm(book);
+        // Single call: check admin role + store currentUserProfile for review fallback
+        try {
+          const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
+          if (userRes.ok) {
+            const user = await userRes.json();
+            currentUserProfile = user; // Store for review fallback
+            if (user.role === 'admin') {
+              // Show admin controls
+              document.getElementById('sidebar-admin-controls').style.display = 'block';
+              // Pre-fill edit form
+              populateEditForm(book);
+            }
           }
+        } catch (err) {
+          console.error('Failed to load book details:', err);
+          currentUserProfile = null;
         }
-      } catch (err) {
-        console.error('Failed to load book details:', err);
-      }
-
-      // Fetch current user profile for review fallback
-      try {
-        const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
-        if (userRes.ok) {
-          currentUserProfile = await userRes.json();
-        }
-      } catch (err) {
-        currentUserProfile = null;
-      }
 
       fetchRecommendations();
       fetchReviews();
@@ -932,17 +924,7 @@
             return;
         }
 
-        // Ensure we have current user profile for fallback
-        if (!currentUserProfile) {
-            try {
-                const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
-                if (userRes.ok) {
-                    currentUserProfile = await userRes.json();
-                }
-            } catch (err) {
-                // ignore profile fetch errors
-            }
-        }
+        // currentUserProfile was already fetched during page load
 
         reviews.forEach((review, idx) => {
             let profilePic = review.profilepicture || '/default-profile.png';
@@ -1051,17 +1033,7 @@
         document.getElementById('review-text').value = '';
         setRating(0);
 
-        // Ensure we have current user profile before refreshing reviews
-        if (!currentUserProfile) {
-            try {
-                const userRes = await fetch(`${API_BASE_URL}/current-user`, { credentials: 'include' });
-                if (userRes.ok) {
-                    currentUserProfile = await userRes.json();
-                }
-            } catch (err) {
-                console.log('Could not fetch user profile after review submission');
-            }
-        }
+        // currentUserProfile was already fetched during page load
 
         // Small delay to ensure database consistency, then refresh reviews
         setTimeout(() => {
