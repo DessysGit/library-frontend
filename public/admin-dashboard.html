@@ -200,32 +200,54 @@
         @media (max-width: 768px) {
             .stat-number { font-size: 2rem; }
 
-            /* Header: stack title above filter, keep filter as horizontal row */
+            /* Compact the green title area */
             .dashboard-header {
-                padding: 20px 16px;
+                padding: 20px 16px 0 16px;
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
+                margin-bottom: 0;
+                overflow: hidden;  /* keep gradient clipped to rounded top corners */
             }
+
+            /* Title block inside the green area */
+            .dashboard-header .flex-grow-1 {
+                width: 100%;
+                padding-bottom: 20px;
+            }
+
+            /* Pull the filter OUT of the green box visually —
+               it renders as a dark attached bar below the green header */
             .dashboard-header .d-flex {
                 flex-direction: column;
                 align-items: flex-start !important;
-                gap: 14px;
+                gap: 0;
             }
-            .dashboard-header .flex-grow-1 {
-                width: 100%;
-            }
-
-            /* Filter row: horizontal scroll, buttons never wrap or stretch */
             .time-filter-inline {
-                width: 100%;
+                /* detach from green header */
+                width: calc(100% + 32px);
+                margin: 0 -16px;
+                background: #1a1a1a;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-top: 2px solid rgba(29,185,84,0.5);
+                border-radius: 0 0 15px 15px;
+                padding: 10px 16px;
+                margin-bottom: 32px;
+
+                /* horizontal scroll row */
+                display: flex;
                 flex-wrap: nowrap;
+                gap: 8px;
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
-                padding-bottom: 2px;
-                justify-content: flex-start;
             }
             .time-filter-inline::-webkit-scrollbar { display: none; }
+
+            /* Lock buttons to their content width — no stretching */
             .time-filter-inline .btn {
-                flex-shrink: 0;  /* never squish */
+                flex: 0 0 auto;
+                width: auto;
+                min-width: max-content;
                 white-space: nowrap;
             }
 
