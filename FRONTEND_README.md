@@ -25,9 +25,11 @@ Vanilla JavaScript frontend for the Des2 Library Management System. Provides the
 - **Review & Rate Books** — Submit 1-5 star ratings
 - **Like / Dislike Books** — Quick reactions
 - **AI Recommendations** — Personalized suggestions
-- **Chatbot Assistant** — Interactive book finder
+- **Chatbot Assistant** — Interactive book finder with personalized responses
 - **Download Books** — Access PDF versions
 - **User Profile** — Activity feed, reviews, preferences, password change
+
+The chatbot provides real-time book information and personalized help based on your login status.
 
 ### For Admins
 - **Analytics Dashboard** — Charts and statistics
@@ -133,6 +135,7 @@ No build step needed — it's static HTML/CSS/JS.
 - JWT authentication handled automatically via localStorage
 - Toast notifications replace all browser dialogs
 - File uploads: PDFs go to Google Cloud Storage, covers to Cloudinary
+- Chatbot auto-resets conversation when closed
 
 ---
 
