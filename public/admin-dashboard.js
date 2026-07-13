@@ -49,6 +49,27 @@ const API_BASE_URL = (() => {
     };
 })();
 
+// Show a message inside a chart container WITHOUT removing the canvas.
+// Preserves the canvas in the DOM so the next filter change can redraw it.
+function showChartMessage(canvas, message) {
+    canvas.style.display = 'none';
+    const container = canvas.parentElement;
+    let msg = container.querySelector('.chart-no-data-msg');
+    if (!msg) {
+        msg = document.createElement('p');
+        msg.className = 'text-center text-muted chart-no-data-msg';
+        msg.style.cssText = 'padding-top:80px;font-size:.9rem;';
+        container.appendChild(msg);
+    }
+    msg.textContent = message;
+}
+
+function clearChartMessage(canvas) {
+    canvas.style.display = '';
+    const msg = canvas.parentElement.querySelector('.chart-no-data-msg');
+    if (msg) msg.remove();
+}
+
 // Chart instances
 let genreChart = null;
 let growthChart = null;
@@ -87,17 +108,13 @@ async function checkAdminAccess() {
 }
 
 // Set time filter
-function setTimeFilter(filter) {
+function setTimeFilter(filter, clickedBtn) {
     currentTimeFilter = filter;
-    
-    // Update button states - Remove active from all buttons first
-    document.querySelectorAll('.time-filter-inline .btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // Add active class to clicked button
-    event.target.classList.add('active');
-    
+
+    // Update active state on all filter buttons
+    document.querySelectorAll('.time-filter-inline .btn').forEach(btn => btn.classList.remove('active'));
+    if (clickedBtn) clickedBtn.classList.add('active');
+
     // Reload only the data that uses time filters
     loadStats();
     loadGrowthChart();
@@ -283,15 +300,16 @@ async function loadGrowthChart() {
             growthChart.destroy();
         }
         
-        // Handle empty data
+        // Handle empty data — hide canvas but keep it in DOM so the
+        // next filter change can find and redraw it
         if (userActivity.length === 0 && bookUploads.length === 0) {
-            const container = canvas.parentElement;
-            if (container) {
-                container.innerHTML = '<p class="text-center text-muted">No growth data available for selected time period</p>';
-            }
+            showChartMessage(canvas, 'No growth data available for the selected period.');
             return;
         }
-        
+
+        // Data exists — clear any previous no-data message and restore canvas
+        clearChartMessage(canvas);
+
         // Merge and sort dates
         const allDates = [...new Set([
             ...userActivity.map(a => a.date),
@@ -391,11 +409,8 @@ async function loadGrowthChart() {
         
     } catch (error) {
         console.error('Error loading growth chart:', error);
-        const canvas = document.getElementById('growthChart');
-        if (canvas && canvas.parentElement) {
-            canvas.parentElement.innerHTML = 
-                '<p class="text-center text-muted">Failed to load chart</p>';
-        }
+        const c = document.getElementById('growthChart');
+        if (c) showChartMessage(c, 'Failed to load chart. Try again later.');
     }
 }
 
@@ -515,14 +530,12 @@ async function loadReviewTrendChart() {
         }
         
         if (trends.length === 0) {
-            const container = canvas.parentElement;
-            if (container) {
-                container.innerHTML = 
-                    '<p class="text-center text-muted">No review data available for selected time period</p>';
-            }
+            showChartMessage(canvas, 'No review data available for the selected period.');
             return;
         }
-        
+
+        clearChartMessage(canvas);
+
         reviewTrendChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -581,11 +594,8 @@ async function loadReviewTrendChart() {
         
     } catch (error) {
         console.error('Error loading review trend chart:', error);
-        const canvas = document.getElementById('reviewTrendChart');
-        if (canvas && canvas.parentElement) {
-            canvas.parentElement.innerHTML = 
-                '<p class="text-center text-muted">Failed to load chart</p>';
-        }
+        const c = document.getElementById('reviewTrendChart');
+        if (c) showChartMessage(c, 'Failed to load chart. Try again later.');
     }
 }
 
