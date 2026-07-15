@@ -1110,17 +1110,31 @@
   </script>
   
   <!-- Floating Chat -->
-  <div id="chat-icon" onclick="toggleChatbox()">💬</div>
+  <div id="chat-icon" onclick="toggleChatbox()" title="Chat with LibBot">💬</div>
 
   <div id="chatbox" class="hidden">
     <div id="chat-header">
-      <span>Ask AI</span>
-      <button onclick="toggleChatbox()">✖</button>
+      <div class="chat-header-left">
+        <div class="chat-avatar">📚</div>
+        <div class="chat-title">
+          <strong>LibBot</strong>
+          <small>Des2 Library Assistant</small>
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <button class="chat-header-btn" onclick="clearChat()" title="Clear chat">🗑</button>
+        <button class="chat-header-btn" onclick="toggleChatbox()" title="Close">✕</button>
+      </div>
     </div>
     <div id="messages"></div>
     <div id="input-area">
-      <input type="text" id="user-input" placeholder="Ask me something..." />
-      <button onclick="sendMessage()">Send</button>
+      <div class="input-row">
+        <input type="text" id="user-input" placeholder="Ask LibBot something…" />
+        <button id="send-btn" onclick="sendMessage()" title="Send">&#10148;</button>
+      </div>
+      <div class="input-footer">
+        <span id="char-counter">0/500</span>
+      </div>
     </div>
   </div>
 
