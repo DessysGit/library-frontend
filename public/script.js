@@ -64,6 +64,164 @@ const seedAdminUsername = 'admin';
 // Initialize user role
 let userRole = "";
 
+// Guest modal callback - stores action to perform after login
+let guestActionCallback = null;
+
+// ── Guest Modal Functions ──────────────────────────────────────────────────
+function showGuestModal(message, callback) {
+    const modal = document.getElementById('guest-access-modal');
+    const messageEl = document.getElementById('guest-modal-message');
+    if (!modal) return;
+    
+    if (message) messageEl.textContent = message;
+    guestActionCallback = callback;
+    modal.style.display = 'block';
+    modal.classList.add('active');
+    
+    // Clear previous inputs
+    const emailInput = document.getElementById('guest-email-username');
+    const passwordInput = document.getElementById('guest-password');
+    const messagesEl = document.getElementById('guest-login-messages');
+    if (emailInput) emailInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+    if (messagesEl) messagesEl.innerHTML = '';
+}
+
+function closeGuestModal() {
+    const modal = document.getElementById('guest-access-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+    }
+    guestActionCallback = null;
+}
+
+async function handleGuestLogin() {
+    const emailOrUsername = document.getElementById('guest-email-username').value.trim();
+    const password = document.getElementById('guest-password').value;
+    const loginBtn = document.getElementById('guest-login-btn');
+    const messagesEl = document.getElementById('guest-login-messages');
+    
+    if (!emailOrUsername || !password) {
+        if (messagesEl) messagesEl.innerHTML = '<div class="alert alert-danger">Please fill in all fields</div>';
+        return;
+    }
+    
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Logging in...';
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ emailOrUsername, password })
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            userRole = user.role;
+            window.currentUsername = user.username;
+            
+            // Store auth token
+            const authData = await response.json();
+            if (authData.token) localStorage.setItem('authToken', authData.token);
+            
+            // Close modal
+            closeGuestModal();
+            
+            // Show success message
+            showToast(`Welcome back, ${user.username}!`, 'success');
+            
+            // Refresh UI
+            updateUIForAuthState(true);
+            await initializeChatbot();
+            await refreshProfilePicture();
+            fetchBooks();
+            
+            // Execute stored callback if any
+            if (guestActionCallback) {
+                const action = guestActionCallback;
+                guestActionCallback = null;
+                setTimeout(() => action(), 500);
+            }
+        } else {
+            const data = await response.json();
+            const errorMessage = data.error || data.message || 'Login failed';
+            if (messagesEl) messagesEl.innerHTML = `<div class="alert alert-danger">${errorMessage}</div>`;
+        }
+    } catch (error) {
+        console.error('Guest login error:', error);
+        if (messagesEl) messagesEl.innerHTML = '<div class="alert alert-danger">Network error. Please try again.</div>';
+    } finally {
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+        }
+    }
+}
+
+// Update UI based on authentication state
+function updateUIForAuthState(isAuthenticated) {
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const sidebarAdminControls = document.getElementById('sidebar-admin-controls');
+    const addBookLink = document.getElementById('add-book-link');
+    const manageUsersLink = document.getElementById('manage-users-link');
+    const chatIcon = document.getElementById('chat-icon');
+    const burgerUsername = document.getElementById('burger-username');
+    const guestAuthButtons = document.getElementById('guest-auth-buttons');
+    
+    // User links
+    const userProfileLink = document.getElementById('user-profile-link');
+    const userBorrowingLink = document.getElementById('user-borrowing-link');
+    const userReservationsLink = document.getElementById('user-reservations-link');
+    const userChallengesLink = document.getElementById('user-challenges-link');
+    const logoutLink = document.getElementById('logout-link');
+    
+    if (isAuthenticated) {
+        // User is logged in - hide guest UI, show user UI
+        if (loginForm) loginForm.style.display = 'none';
+        if (registerForm) registerForm.style.display = 'none';
+        if (guestAuthButtons) guestAuthButtons.style.display = 'none';
+        if (chatIcon) chatIcon.style.display = 'block';
+        
+        // Show user links
+        if (userProfileLink) userProfileLink.style.display = 'block';
+        if (userBorrowingLink) userBorrowingLink.style.display = 'block';
+        if (userReservationsLink) userReservationsLink.style.display = 'block';
+        if (userChallengesLink) userChallengesLink.style.display = 'block';
+        if (logoutLink) logoutLink.style.display = 'block';
+        
+        if (userRole === 'admin') {
+            if (sidebarAdminControls) sidebarAdminControls.style.display = 'block';
+            if (addBookLink) addBookLink.style.display = 'block';
+            if (manageUsersLink) manageUsersLink.style.display = 'block';
+        } else {
+            if (sidebarAdminControls) sidebarAdminControls.style.display = 'none';
+        }
+    } else {
+        // Guest user - show guest UI
+        if (loginForm) loginForm.style.display = 'block';
+        if (registerForm) registerForm.style.display = 'none';
+        if (guestAuthButtons) guestAuthButtons.style.display = 'flex';
+        if (sidebarAdminControls) sidebarAdminControls.style.display = 'none';
+        if (addBookLink) addBookLink.style.display = 'none';
+        if (manageUsersLink) manageUsersLink.style.display = 'none';
+        if (chatIcon) chatIcon.style.display = 'none';
+        if (burgerUsername) burgerUsername.innerText = 'Guest';
+        
+        // Hide all user-specific links
+        if (userProfileLink) userProfileLink.style.display = 'none';
+        if (userBorrowingLink) userBorrowingLink.style.display = 'none';
+        if (userReservationsLink) userReservationsLink.style.display = 'none';
+        if (userChallengesLink) userChallengesLink.style.display = 'none';
+        if (logoutLink) logoutLink.style.display = 'none';
+    }
+}
+
 // Ensure the necessary elements are hidden on initial load
 document.addEventListener('DOMContentLoaded', async () => {    
     // Show loading state initially
@@ -93,13 +251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Hide loading state
         hideLoadingState();
         
-        if (!isAuthenticated) {
-            // User is not authenticated - redirect to auth page immediately
-            window.location.replace('auth.html');
-            return;
-        }
-        
-        // User is authenticated - show main app
+        // Show main app for everyone (guest and authenticated users)
         const hamburgerButton = document.getElementById('hamburger-button');
         const searchBooksSection = document.getElementById('search-books');
         const newsletterSection = document.getElementById('newsletter-section');
@@ -113,6 +265,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (mainContent) mainContent.style.display = 'block';
         if (footer) footer.style.display = 'block';
         if (chatIcon) chatIcon.style.display = 'block';
+        
+        // Show login button for guests, user menu for authenticated users
+        updateUIForAuthState(isAuthenticated);
         
         // Fetch books if on main page
         const titleInput = document.getElementById('search-title');
@@ -461,7 +616,20 @@ function toggleMenu() {
 }
 
 async function showSection(sectionId) {
-    const sections = document.querySelectorAll('#register-form, #login-form, #search-books, #profile-section, #admin-section, #add-book-section, #membership-section, #borrowing-section, #reservations-section, #fines-section, #challenges-section, #events-section, .newsletter-section');
+    // Auth guard - redirect to login modal for protected sections
+    const protectedSections = ['profile-section', 'borrowing-section', 'reservations-section', 'challenges-section'];
+    if (protectedSections.includes(sectionId) && !isUserLoggedIn()) {
+        const messages = {
+            'profile-section': 'Please log in to view your profile.',
+            'borrowing-section': 'Please log in to view your borrowed books.',
+            'reservations-section': 'Please log in to view your reservations.',
+            'challenges-section': 'Please log in to view reading challenges.'
+        };
+        showGuestModal(messages[sectionId] || 'Please log in to access this feature.', () => showSection(sectionId));
+        return;
+    }
+
+    const sections = document.querySelectorAll('#register-form, #login-form, #search-books, #profile-section, #admin-section, #add-book-section, #borrowing-section, #reservations-section, #challenges-section, .newsletter-section');
     sections.forEach(section => {
         if (section) section.style.display = section.id === sectionId ? 'block' : 'none';
     });
@@ -507,10 +675,6 @@ async function showSection(sectionId) {
         showSection('search-books');
     }
 
-    if (sectionId === 'membership-section') {
-        checkMembershipStatus();
-    }
-
     if (sectionId === 'borrowing-section') {
         loadBorrowedBooks();
     }
@@ -519,16 +683,8 @@ async function showSection(sectionId) {
         loadMyReservations();
     }
 
-    if (sectionId === 'fines-section') {
-        loadMyFines();
-    }
-
     if (sectionId === 'challenges-section') {
         loadChallenges();
-    }
-
-    if (sectionId === 'events-section') {
-        loadEvents();
     }
 
     const addBookMessages = document.getElementById('add-book-messages');
@@ -616,11 +772,15 @@ async function fetchBooks(query = '', page = 1) {
                             <button class="like-button" onclick="handleLikeDislike(${book.id}, 'like')">👍 ${book.likes || 0}</button>
                             <button class="dislike-button" onclick="handleLikeDislike(${book.id}, 'dislike')">👎 ${book.dislikes || 0}</button>
                         </div>
-                        ${book.hasPhysicalCopy ? `
+                        ${book.hasPhysicalCopy ? (book.isAvailable === false ? `
+                            <button class="btn btn-warning btn-sm reserve-btn" onclick="reserveBook(${book.id})" title="This copy is checked out — join the reservation queue">
+                                <i class="fas fa-clock"></i> Reserve
+                            </button>
+                        ` : `
                             <button class="btn btn-success btn-sm borrow-btn" onclick="borrowBook(${book.id})" title="Borrow physical copy from library">
                                 <i class="fas fa-book-reader"></i> Borrow
                             </button>
-                        ` : ''}
+                        `) : ''}
                         ${book.hasDigitalCopy ? `
                             <button class="btn btn-info btn-sm download-btn" onclick="showBookDetails(${book.id})" title="Download digital copy">
                                 <i class="fas fa-download"></i> Download
@@ -1139,6 +1299,7 @@ async function checkAuthStatus() {
             const burgerUsername = document.getElementById('burger-username');
             if (burgerUsername) burgerUsername.innerText = user.username;
 
+            // Refresh profile picture for logged-in users
             await refreshProfilePicture();
 
             if (userRole === 'admin') {
@@ -1150,9 +1311,28 @@ async function checkAuthStatus() {
             }
 
             show('chat-icon');
+            
+            // Update UI for authenticated user
+            updateUIForAuthState(true);
+            
             return true;
         } else {
+            // Not authenticated - show guest mode
+            const show = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'block'; };
+            const hide = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'none';  };
+            
+            hide('login-form');
+            show('main-content'); show('newsletter-section'); show('hamburger-button');
+            show('search-books'); show('footer');
+            hide('add-book-section'); hide('profile-section');
             hide('chat-icon');
+            
+            const burgerUsername = document.getElementById('burger-username');
+            if (burgerUsername) burgerUsername.innerText = 'Guest';
+            
+            // Update UI for guest user
+            updateUIForAuthState(false);
+            
             return false;
         }
     } catch (error) {
@@ -1564,11 +1744,15 @@ function displayQuickSearchResults(books) {
                             <button class="like-button" onclick="handleLikeDislike(${book.id}, 'like')">👍 ${book.likes || 0}</button>
                             <button class="dislike-button" onclick="handleLikeDislike(${book.id}, 'dislike')">👎 ${book.dislikes || 0}</button>
                         </div>
-                        ${book.hasPhysicalCopy ? `
+                        ${book.hasPhysicalCopy ? (book.isAvailable === false ? `
+                            <button class="btn btn-warning btn-sm reserve-btn" onclick="reserveBook(${book.id})" title="This copy is checked out — join the reservation queue">
+                                <i class="fas fa-clock"></i> Reserve
+                            </button>
+                        ` : `
                             <button class="btn btn-success btn-sm borrow-btn" onclick="borrowBook(${book.id})" title="Borrow physical copy from library">
                                 <i class="fas fa-book-reader"></i> Borrow
                             </button>
-                        ` : ''}
+                        `) : ''}
                         ${book.hasDigitalCopy ? `
                             <button class="btn btn-info btn-sm download-btn" onclick="showBookDetails(${book.id})" title="Download digital copy">
                                 <i class="fas fa-download"></i> Download
@@ -1591,7 +1775,7 @@ function displayQuickSearchResults(books) {
 
 async function borrowBook(bookId) {
     if (!isUserLoggedIn()) {
-        showToast('Please log in to borrow books.', 'error');
+        showGuestModal('Please log in or create an account to borrow physical books.', () => borrowBook(bookId));
         return;
     }
     try {
@@ -1599,12 +1783,21 @@ async function borrowBook(bookId) {
             method: 'POST',
             headers: getAuthHeaders()
         });
-        const data = await response.json();
+        
+        // Handle non-JSON responses (like plain text error messages)
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            data = { error: await response.text() || `HTTP ${response.status}` };
+        }
+        
         if (response.ok) {
             showToast(data.message || 'Book borrowed successfully!', 'success');
             loadBorrowedBooks();
         } else {
-            showToast(data.error || 'Failed to borrow book.', 'error');
+            showToast(data.error || data.message || 'Failed to borrow book.', 'error');
         }
     } catch (error) {
         console.error('Error borrowing book:', error);
@@ -1626,7 +1819,10 @@ function clearFilters() {
 }
 // ─── Book Reservation Functions ──────────────────────────────────────────
 async function reserveBook(bookId) {
-    if (!isUserLoggedIn()) { showToast('Please log in to reserve books.', 'error'); return; }
+    if (!isUserLoggedIn()) {
+        showGuestModal('Please log in or create an account to reserve books.', () => reserveBook(bookId));
+        return;
+    }
     try {
         const response = await fetch(`${API_BASE_URL}/reservations/${bookId}`, { method: 'POST', headers: getAuthHeaders() });
         const data = await response.json();
@@ -1668,42 +1864,12 @@ async function cancelReservation(id) {
 }
 
 // ─── Fine Management Functions ───────────────────────────────────────────
-async function loadMyFines() {
-    const listDiv = document.getElementById('fines-list');
-    const summaryDiv = document.getElementById('fines-summary');
-    if (!listDiv) return;
-    try {
-        const [finesRes, summaryRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/fines/my`, { headers: getAuthHeaders() }),
-            fetch(`${API_BASE_URL}/fines/summary`, { headers: getAuthHeaders() })
-        ]);
-        const fines = await finesRes.json();
-        const summary = await summaryRes.json();
-        if (summaryDiv) {
-            summaryDiv.innerHTML = summary.count > 0
-                ? `<div class="alert alert-warning"><strong>Total Unpaid:</strong> GHS ${parseFloat(summary.total).toFixed(2)} (${summary.count} fine${summary.count > 1 ? 's' : ''}) <button class="btn btn-success btn-sm float-right" onclick="payAllFines()"><i class="fas fa-credit-card"></i> Pay All</button></div>`
-                : '<div class="alert alert-success">No unpaid fines. Great job!</div>';
-        }
-        if (fines.length === 0) { listDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-check-circle" style="font-size:2rem;color:#1DB954;"></i><p class="mt-2">No fines.</p></div>'; return; }
-        listDiv.innerHTML = fines.map(f => {
-            const sClass = f.status === 'paid' ? 'success' : f.status === 'waived' ? 'info' : 'danger';
-            const sText = f.status === 'paid' ? 'Paid' : f.status === 'waived' ? 'Waived' : 'Unpaid';
-            return `<div class="p-3 mb-2 rounded" style="border-left:4px solid ${f.status === 'unpaid' ? '#dc3545' : '#28a745'};background:#1e1e1e;">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div><strong>GHS ${parseFloat(f.amount).toFixed(2)}</strong>${f.bookTitle ? `<br><small>Book: ${f.bookTitle}</small>` : ''}<br><small>${f.reason || ''}</small></div>
-                    <div class="text-right"><span class="badge badge-${sClass}">${sText}</span><br>${f.status === 'unpaid' ? `<button class="btn btn-success btn-sm mt-1" onclick="payFine(${f.id})"><i class="fas fa-credit-card"></i> Pay</button>` : ''}</div>
-                </div>
-                <small class="text-muted">Issued: ${new Date(f.issuedAt).toLocaleDateString()}</small>
-                ${f.paidAt ? `<br><small class="text-success">Paid: ${new Date(f.paidAt).toLocaleDateString()}</small>` : ''}</div>`;
-        }).join('');
-    } catch (error) { listDiv.innerHTML = '<div class="text-center text-danger">Failed to load fines.</div>'; }
-}
-
+// Fines are managed inline within "My Borrowed Books" (see loadBorrowedBooks)
 async function payFine(id) {
     try {
         const response = await fetch(`${API_BASE_URL}/fines/pay/${id}`, { method: 'POST', headers: getAuthHeaders() });
         const data = await response.json();
-        if (response.ok) { showToast(data.message, 'success'); loadMyFines(); }
+        if (response.ok) { showToast(data.message, 'success'); loadBorrowedBooks(); }
         else { showToast(data.error || 'Failed.', 'error'); }
     } catch (error) { showToast('Network error.', 'error'); }
 }
@@ -1713,7 +1879,7 @@ async function payAllFines() {
     try {
         const response = await fetch(`${API_BASE_URL}/fines/pay-all`, { method: 'POST', headers: getAuthHeaders() });
         const data = await response.json();
-        if (response.ok) { showToast(data.message, 'success'); loadMyFines(); }
+        if (response.ok) { showToast(data.message, 'success'); loadBorrowedBooks(); }
         else { showToast(data.error || 'Failed.', 'error'); }
     } catch (error) { showToast('Network error.', 'error'); }
 }
@@ -1803,137 +1969,46 @@ function switchChallengeTab(tab) {
     loadChallenges();
 }
 
-// ─── Membership Functions ─────────────────────────────────────────────────
-async function checkMembershipStatus() {
-    const statusDiv = document.getElementById('membership-status');
-    const detailsDiv = document.getElementById('membership-details');
-    const applyDiv = document.getElementById('membership-apply');
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/membership/status`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-        });
-
-        if (!response.ok) {
-            statusDiv.style.display = 'none';
-            applyDiv.style.display = 'block';
-            return;
-        }
-
-        const data = await response.json();
-
-        statusDiv.style.display = 'none';
-
-        if (data.isMember) {
-            document.getElementById('membership-card-number').textContent = data.cardNumber || 'N/A';
-            document.getElementById('membership-type').textContent = data.membershipType || 'Standard';
-            document.getElementById('membership-end-date').textContent = new Date(data.endDate).toLocaleDateString();
-            document.getElementById('membership-status-text').textContent = data.status || 'Active';
-            detailsDiv.style.display = 'block';
-            applyDiv.style.display = 'none';
-        } else {
-            applyDiv.style.display = 'block';
-            detailsDiv.style.display = 'none';
-        }
-    } catch (error) {
-        console.error('Error checking membership:', error);
-        statusDiv.innerHTML = '<div class="alert alert-danger">Failed to load membership status. Please try again.</div>';
-    }
-}
-
-async function applyForMembership() {
-    const membershipType = document.getElementById('membership-type-select').value;
-    const messagesDiv = document.getElementById('membership-messages');
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/membership/apply`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ membershipType })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast(data.message, 'success', 3000);
-            checkMembershipStatus();
-        } else {
-            messagesDiv.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to apply for membership'}</div>`;
-        }
-    } catch (error) {
-        console.error('Error applying for membership:', error);
-        messagesDiv.innerHTML = '<div class="alert alert-danger">Network error. Please try again.</div>';
-    }
-}
-
-async function renewMembership() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/membership/renew`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast(data.message, 'success', 3000);
-            checkMembershipStatus();
-        } else {
-            document.getElementById('membership-messages').innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to renew membership'}</div>`;
-        }
-    } catch (error) {
-        console.error('Error renewing membership:', error);
-        document.getElementById('membership-messages').innerHTML = '<div class="alert alert-danger">Network error. Please try again.</div>';
-    }
-}
-
 // ─── Borrowing Functions ──────────────────────────────────────────────────
 async function loadBorrowedBooks() {
     const statusDiv = document.getElementById('borrowing-status');
     const listDiv = document.getElementById('borrowed-books-list');
     const noBooksDiv = document.getElementById('no-borrowed-books');
-    const notMemberDiv = document.getElementById('not-a-member-message');
+    const finesSummaryDiv = document.getElementById('borrowing-fines-summary');
 
     try {
-        // First check if user is a member
-        const membershipResponse = await fetch(`${API_BASE_URL}/membership/status`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-        });
-
-        if (!membershipResponse.ok) {
-            statusDiv.style.display = 'none';
-            listDiv.style.display = 'none';
-            noBooksDiv.style.display = 'none';
-            notMemberDiv.style.display = 'block';
-            return;
-        }
-
-        const membershipData = await membershipResponse.json();
-
-        if (!membershipData.isMember) {
-            statusDiv.style.display = 'none';
-            listDiv.style.display = 'none';
-            noBooksDiv.style.display = 'none';
-            notMemberDiv.style.display = 'block';
-            return;
-        }
-
-        // Load borrowed books
-        const booksResponse = await fetch(`${API_BASE_URL}/borrow/my`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-        });
+        // Load borrowed books and fines in parallel (FR-03: Borrowed Books & Fines)
+        const authHeaders = { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
+        const [booksResponse, finesResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/borrow/my`, { headers: authHeaders }),
+            fetch(`${API_BASE_URL}/fines/my`, { headers: authHeaders }).catch(() => null)
+        ]);
 
         if (!booksResponse.ok) {
             throw new Error('Failed to load borrowed books');
         }
 
         const borrowedBooks = await booksResponse.json();
+        const unpaidFines = (finesResponse && finesResponse.ok)
+            ? (await finesResponse.json()).filter(f => f.status === 'unpaid')
+            : [];
 
         statusDiv.style.display = 'none';
-        notMemberDiv.style.display = 'none';
+
+        // Unpaid fines summary banner
+        if (finesSummaryDiv) {
+            if (unpaidFines.length > 0) {
+                const total = unpaidFines.reduce((sum, f) => sum + parseFloat(f.amount || 0), 0);
+                finesSummaryDiv.innerHTML = `
+                    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-exclamation-triangle"></i> You have <strong>${unpaidFines.length}</strong> unpaid fine${unpaidFines.length > 1 ? 's' : ''} totaling <strong>GHS ${total.toFixed(2)}</strong></span>
+                        <button class="btn btn-success btn-sm" onclick="payAllFines()"><i class="fas fa-credit-card"></i> Pay All</button>
+                    </div>`;
+                finesSummaryDiv.style.display = 'block';
+            } else {
+                finesSummaryDiv.style.display = 'none';
+            }
+        }
 
         if (borrowedBooks.length === 0) {
             listDiv.style.display = 'none';
@@ -1952,6 +2027,21 @@ async function loadBorrowedBooks() {
                                borrow.status === 'borrowed' ? '<span class="badge badge-warning">Borrowed</span>' :
                                '<span class="badge badge-success">Returned</span>';
 
+            // Fine for this book: prefer the official unpaid fine record; otherwise
+            // show the live daily accrual (GHS 1.00/day) for overdue books
+            const matchingFine = unpaidFines.find(f => f.bookTitle === borrow.title);
+            let fineCell = '<span class="text-muted">—</span>';
+            if (matchingFine) {
+                fineCell = `
+                    <span class="text-danger"><strong>GHS ${parseFloat(matchingFine.amount).toFixed(2)}</strong></span><br>
+                    <button class="btn btn-sm btn-success mt-1" onclick="payFine(${matchingFine.id})" title="Pay fine">
+                        <i class="fas fa-credit-card"></i> Pay
+                    </button>`;
+            } else if (isOverdue) {
+                const daysOverdue = Math.ceil((new Date() - new Date(borrow.dueDate)) / (1000 * 60 * 60 * 24));
+                fineCell = `<span class="text-warning" title="Accrues at GHS 1.00 per day">GHS ${(daysOverdue * 1.0).toFixed(2)} <small>(accruing)</small></span>`;
+            }
+
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>
@@ -1961,6 +2051,7 @@ async function loadBorrowedBooks() {
                 <td>${borrowDate}</td>
                 <td>${dueDate}</td>
                 <td>${statusBadge}</td>
+                <td>${fineCell}</td>
                 <td>
                     ${borrow.status === 'borrowed' ? `
                         <button class="btn btn-sm btn-success" onclick="returnBook(${borrow.id})" title="Return Book">
@@ -2029,48 +2120,4 @@ async function renewBook(borrowId) {
     }
 }
 
-// ─── Events Functions ─────────────────────────────────────────────────────
-async function loadEvents() {
-    const listDiv = document.getElementById('events-list');
-    if (!listDiv) return;
-    listDiv.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading events...</div>';
-    try {
-        const response = await fetch(`${API_BASE_URL}/events`, { headers: getAuthHeaders() });
-        if (!response.ok) throw new Error('Failed to fetch events');
-        const events = await response.json();
-        if (events.length === 0) {
-            listDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-calendar-alt" style="font-size:2rem;opacity:.3;"></i><p class="mt-2 text-muted">No upcoming events.</p></div>';
-            return;
-        }
-        listDiv.innerHTML = events.map(e => `
-            <div class="p-3 mb-2 rounded" style="border-left:4px solid #5bc0de;background:#1e1e1e;">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <strong>${e.title}</strong>
-                        <p class="mb-1">${e.description || ''}</p>
-                        <small class="text-muted">
-                            <i class="fas fa-map-marker-alt"></i> ${e.location || 'TBA'} | 
-                            <i class="fas fa-clock"></i> ${new Date(e.eventDate).toLocaleString()} | 
-                            <i class="fas fa-users"></i> ${e.attendeeCount || 0}/${e.maxAttendees || '∞'}
-                        </small>
-                    </div>
-                    <div>
-                        ${e.isRegistered ? '<span class="badge badge-success">Registered</span>' : `<button class="btn btn-primary btn-sm" onclick="registerForEvent(${e.id})">Register</button>`}
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        listDiv.innerHTML = '<div class="text-center text-danger">Failed to load events.</div>';
-    }
-}
 
-async function registerForEvent(eventId) {
-    if (!isUserLoggedIn()) { showToast('Please log in to register for events.', 'error'); return; }
-    try {
-        const response = await fetch(`${API_BASE_URL}/events/${eventId}/register`, { method: 'POST', headers: getAuthHeaders() });
-        const data = await response.json();
-        if (response.ok) { showToast(data.message, 'success'); loadEvents(); }
-        else { showToast(data.error || 'Failed to register.', 'error'); }
-    } catch (error) { showToast('Network error.', 'error'); }
-}
