@@ -217,6 +217,70 @@
             border-radius: 8px; margin-bottom: 10px;
             transition: all .2s ease; background: rgba(40,40,40,0.4);
         }
+
+        /* ── Toast Notifications ─────────────────────────────────── */
+        #toast-container {
+            position: fixed;
+            top: 18px; right: 18px;
+            z-index: 3000;
+            display: flex; flex-direction: column;
+            gap: 10px;
+            max-width: 340px;
+            pointer-events: none;
+        }
+        .toast-msg {
+            background: #1e1e1e;
+            color: #eee;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-left: 4px solid #3b82f6;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: .85rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+            opacity: 0;
+            transform: translateX(30px);
+            transition: opacity .3s ease, transform .3s ease;
+            max-height: 50vh;
+            overflow-y: auto;
+            word-break: break-word;
+        }
+        .toast-msg.show { opacity: 1; transform: translateX(0); }
+        .toast-msg.success { border-left-color: #1DB954; }
+        .toast-msg.error   { border-left-color: #dc3545; }
+        .toast-msg.info    { border-left-color: #3b82f6; }
+
+        /* ── Confirm Modal ───────────────────────────────────────── */
+        #confirm-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(3px);
+            z-index: 2900;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #confirm-modal-overlay.active { display: flex; }
+        #confirm-modal {
+            background: #1a1a1a;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-top: 3px solid #dc3545;
+            border-radius: 14px;
+            padding: 24px 26px;
+            width: 100%;
+            max-width: 400px;
+            color: #eee;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            transform: scale(0.95);
+            transition: transform .2s ease;
+        }
+        #confirm-modal-overlay.active #confirm-modal { transform: scale(1); }
+        #confirm-modal h4 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+        #confirm-modal p  { font-size: .9rem; color: #bbb; margin-bottom: 20px; }
+        #confirm-modal .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+        #confirm-modal .btn { font-size: .85rem; padding: 8px 18px; border-radius: 8px; }
+
         .book-card:hover {
             box-shadow: 0 3px 12px rgba(29,185,84,0.15);
             transform: translateX(3px); background: rgba(50,50,50,0.6);
@@ -363,19 +427,19 @@
             <i class="fas fa-book-open"></i> Admin Panel
         </div>
         <div class="sidebar-nav">
-            <div class="nav-section">Analytics</div>
-            <a href="#" class="active" onclick="scrollToSection('stats-section', this)"><i class="fas fa-chart-bar"></i> Overview</a>
-            <a href="#" onclick="scrollToSection('charts-section', this)"><i class="fas fa-chart-pie"></i> Charts</a>
-            <a href="#" onclick="scrollToSection('lists-section', this)"><i class="fas fa-list"></i> Top Lists</a>
-            <a href="#" onclick="scrollToSection('activity-section', this)"><i class="fas fa-history"></i> Activity</a>
+            <div class="nav-section">Views</div>
+            <a href="#" class="active" onclick="showAdminSection('stats-section', this)"><i class="fas fa-chart-bar"></i> Overview</a>
+            <a href="#" onclick="showAdminSection('charts-section', this)"><i class="fas fa-chart-pie"></i> Charts</a>
+            <a href="#" onclick="showAdminSection('lists-section', this)"><i class="fas fa-list"></i> Top Lists</a>
+            <a href="#" onclick="showAdminSection('activity-section', this)"><i class="fas fa-history"></i> Activity</a>
+            <a href="#" onclick="showAdminSection('add-book-section', this)"><i class="fas fa-plus-circle"></i> Add Book</a>
+            <a href="#" onclick="showAdminSection('management-section', this)"><i class="fas fa-cogs"></i> Console</a>
 
-            <div class="nav-section">Management</div>
-            <a href="#" onclick="scrollToSection('management-section', this)"><i class="fas fa-cogs"></i> Console</a>
-
-            <div class="nav-section">Actions</div>
-            <a href="#management-section" onclick="event.preventDefault(); switchManagementTab('fines'); setTimeout(function(){ scrollToSection('management-section', null); }, 100);"><i class="fas fa-dollar-sign"></i> Manage Fines</a>
-            <a href="#management-section" onclick="event.preventDefault(); switchManagementTab('reservations'); setTimeout(function(){ scrollToSection('management-section', null); }, 100);"><i class="fas fa-bookmark"></i> Reservations</a>
-            <a href="#management-section" onclick="event.preventDefault(); switchManagementTab('borrowing'); setTimeout(function(){ scrollToSection('management-section', null); }, 100);"><i class="fas fa-book-reader"></i> Borrowing</a>
+            <div class="nav-section">Quick Jump</div>
+            <a href="#" onclick="showAdminSection('management-section', null); switchManagementTab('fines');"><i class="fas fa-dollar-sign"></i> Manage Fines</a>
+            <a href="#" onclick="showAdminSection('management-section', null); switchManagementTab('reservations');"><i class="fas fa-bookmark"></i> Reservations</a>
+            <a href="#" onclick="showAdminSection('management-section', null); switchManagementTab('borrowing');"><i class="fas fa-book-reader"></i> Borrowing</a>
+            <a href="#" onclick="showAdminSection('management-section', null); switchManagementTab('users');"><i class="fas fa-users"></i> Manage Users</a>
             <a href="#" onclick="exportUsers()"><i class="fas fa-download"></i> Export Users</a>
             <a href="#" onclick="exportBooks()"><i class="fas fa-download"></i> Export Books</a>
         </div>
@@ -571,6 +635,75 @@
             </div>
         </section>
 
+        <!-- ─── Add Book Section ─────────────────────────────────── -->
+        <section id="add-book-section" style="display: none;">
+            <div class="card dashboard-card">
+                <div class="card-header section-header">
+                    <i class="fas fa-plus-circle section-icon"></i>
+                    <h5>Add a New Book</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="add-title">Book Title</label>
+                                <input type="text" id="add-title" class="form-control bg-dark text-white" placeholder="e.g., The Alchemist">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="add-author">Author</label>
+                                <input type="text" id="add-author" class="form-control bg-dark text-white" placeholder="e.g., Paulo Coelho">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-description">Short Description</label>
+                        <textarea id="add-description" class="form-control bg-dark text-white" rows="3" placeholder="A brief summary of the book..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-genres">Genres</label>
+                        <input type="text" id="add-genres" class="form-control bg-dark text-white" placeholder="e.g., Fiction, Philosophy">
+                    </div>
+                    <div class="form-group">
+                        <label for="add-physical-copies">Physical Copies Available</label>
+                        <input type="number" id="add-physical-copies" class="form-control bg-dark text-white" value="1" min="0">
+                        <small class="form-text text-muted">Number of physical copies available for borrowing (0 = digital only)</small>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Book Cover (optional)</label>
+                                <div class="upload-area-wrapper">
+                                    <div class="upload-area" id="add-cover-upload-area" style="border: 2px dashed rgba(29,185,84,0.3); border-radius: 8px; padding: 0.85rem 1rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
+                                        <i class="fas fa-image" style="color: #1DB954; font-size: 1.3rem;"></i>
+                                        <span id="add-cover-label-text" style="color: #aaa; font-size: 0.875rem;">Click to choose an image…</span>
+                                        <input type="file" id="add-book-cover" accept="image/*" style="display: none;" onchange="updateAddBookUploadLabel('add-book-cover','add-cover-label-text','add-cover-upload-area')">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Book File (PDF) <span class="text-danger">*</span></label>
+                                <div class="upload-area-wrapper">
+                                    <div class="upload-area" id="add-pdf-upload-area" style="border: 2px dashed rgba(29,185,84,0.3); border-radius: 8px; padding: 0.85rem 1rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
+                                        <i class="fas fa-file-pdf" style="color: #1DB954; font-size: 1.3rem;"></i>
+                                        <span id="add-pdf-label-text" style="color: #aaa; font-size: 0.875rem;">Click to choose a PDF…</span>
+                                        <input type="file" id="add-book-file" accept=".pdf,application/pdf" style="display: none;" onchange="updateAddBookUploadLabel('add-book-file','add-pdf-label-text','add-pdf-upload-area')">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="add-book-messages" class="mt-3"></div>
+                    <button id="add-book-btn" onclick="submitAddBook()" class="btn btn-success w-100 mt-2">
+                        <i class="fas fa-plus-circle mr-2"></i>Add Book
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <!-- ─── Management Console ───────────────────────────────── -->
         <section id="management-section">
             <div class="card dashboard-card">
@@ -623,7 +756,7 @@
                     <div id="activity-management" class="management-section" style="display:none;">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 style="color:#e0e0e0;margin:0;">Activity Logs</h6>
-                            <button class="btn btn-primary btn-sm" onclick="exportActivityLogs()"><i class="fas fa-download"></i> Export Logs</button>
+<button class="btn btn-primary btn-sm" onclick="exportActivityLogs()"><i class="fas fa-download"></i> Export Transactions</button>
                         </div>
                         <div id="admin-activity-list"></div>
                     </div>
@@ -706,5 +839,18 @@
             loadConsoleSummary();
         };
     </script>
+
+    <!-- Toast + confirm modal (used by showToast / showConfirmModal helpers) -->
+    <div id="toast-container"></div>
+    <div id="confirm-modal-overlay">
+        <div id="confirm-modal">
+            <h4><i class="fas fa-exclamation-triangle" style="color:#dc3545;"></i> Confirm Action</h4>
+            <p id="confirm-modal-message"></p>
+            <div class="modal-buttons">
+                <button id="confirm-modal-ok" class="btn btn-danger">Delete</button>
+                <button id="confirm-modal-cancel" class="btn btn-outline-light">Cancel</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
