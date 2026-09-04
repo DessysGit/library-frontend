@@ -3,17 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Des2 Library</title>
+    <title>Tesano Community Library</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Top Banner Bar (visible only for guests) -->
+    <div id="guest-top-banner" class="guest-top-banner" style="display: none;">
+        <div class="container banner-container">
+            <span class="banner-welcome">
+                <i class="fas fa-book-reader"></i> Welcome to Tesano Community Library
+            </span>
+            <div class="banner-auth-buttons">
+                <button class="btn btn-outline-light btn-sm" onclick="window.location.href='auth.html'">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="window.location.href='auth.html?mode=register'">
+                    <i class="fas fa-user-plus"></i> Register
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Header Section -->
     <header class="header text-center">
-        <div class="container">
-            <h1 class="stylish-logo">Des2 Library</h1>
-            <p class="slogan">Your Gateway to Infinite Knowledge</p>
+        <div class="container header-container">
+            <div class="header-logo-area">
+                <h1 class="stylish-logo">Tesano Community Library</h1>
+                <p class="slogan">Empowering Tesano Through Knowledge & Community</p>
+            </div>
         </div>
     </header>
 
@@ -25,7 +44,7 @@
     <a href="javascript:void(0)" class="closebtn" onclick="toggleMenu()">&times;</a>
     <div class="sidebar-header">
         <img id="burger-profile-picture" src="" alt="Profile Picture" loading="lazy" style="width: 80px; height: 80px; border-radius: 50%;">
-        <p id="burger-username">Username</p>
+        <p id="burger-username">Guest</p>
     </div>
     
     <!-- Admin Edit Controls in Sidebar -->
@@ -37,16 +56,22 @@
         <a href="admin-dashboard.html" id="dashboard-link">
             <i class="fas fa-chart-line"></i> Analytics Dashboard
         </a>
-        <a href="javascript:void(0)" onclick="showSection('admin-section')" id="manage-users-link">
-            <i class="fas fa-users"></i> Manage Users
-        </a>
-        <a href="javascript:void(0)" onclick="showSection('add-book-section')" id="add-book-link">
-            <i class="fas fa-book"></i> Add Book
-        </a>
     </div>
     
-    <a href="javascript:void(0)" onclick="showSection('profile-section')">User Profile</a>
-    <a href="javascript:void(0)" onclick="logout()">Logout</a>
+    <!-- Logged-in user items (hidden for guests) -->
+    <a href="javascript:void(0)" onclick="showSection('profile-section')" id="user-profile-link" style="display: none;">
+        <i class="fas fa-user"></i> User Profile
+    </a>
+    <a href="javascript:void(0)" onclick="showSection('borrowing-section')" id="user-borrowing-link" style="display: none;">
+        <i class="fas fa-book-reader"></i> My Borrowed Books
+    </a>
+    <a href="javascript:void(0)" onclick="showSection('reservations-section')" id="user-reservations-link" style="display: none;">
+        <i class="fas fa-clock"></i> My Reservations
+    </a>
+    <a href="javascript:void(0)" onclick="showSection('challenges-section')" id="user-challenges-link" style="display: none;">
+        <i class="fas fa-trophy"></i> Reading Challenges
+    </a>
+    <a href="javascript:void(0)" onclick="logout()" id="logout-link" style="display: none;">Logout</a>
 </div>
 
     <!-- Main Content -->
@@ -137,114 +162,6 @@
     </div>
   </div>
   
-
-        <!-- Add Book Section -->
-<div id="add-book-section" class="mt-4" style="display: none;">
-    <div class="card shadow-lg border-0 bg-dark text-white p-4">
-      <div class="card-body">
-        <h2 class="card-title text-success mb-4 text-center">📚 Add a New Book</h2>
-  
-        <div class="row">
-          <div class="col-md-6">
-            <div class="form-group">
-              <label for="title">Book Title</label>
-              <input type="text" id="title" class="form-control" placeholder="e.g., The Alchemist">
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="form-group">
-              <label for="author">Author</label>
-              <input type="text" id="author" class="form-control" placeholder="e.g., Paulo Coelho">
-            </div>
-          </div>
-        </div>
-  
-        <div class="form-group">
-          <label for="description">Short Description</label>
-          <textarea id="description" class="form-control" rows="3" placeholder="A brief summary of the book..."></textarea>
-        </div>
-  
-        <div class="form-group">
-          <label for="genres">Genres</label>
-          <input type="text" id="genres" class="form-control" placeholder="e.g., Fiction, Philosophy">
-        </div>
-  
-        <div class="upload-row">
-          <!-- Cover upload -->
-          <div class="upload-box">
-            <label for="book-cover">
-              Upload Book Cover
-              <small>(optional &mdash; image)</small>
-            </label>
-            <div class="upload-area-wrapper">
-              <div class="upload-area" id="cover-upload-area">
-                <i class="fas fa-image upload-icon"></i>
-                <span class="upload-label-text" id="cover-label-text">Click to choose an image&hellip;</span>
-                <input type="file" id="book-cover" name="cover" accept="image/*"
-                       onchange="updateUploadLabel('book-cover','cover-label-text','cover-upload-area')">
-              </div>
-            </div>
-          </div>
-
-          <!-- PDF upload -->
-          <div class="upload-box">
-            <label for="book-file">
-              Upload Book File <span class="text-danger">*</span>
-              <small>(PDF &mdash; required)</small>
-            </label>
-            <div class="upload-area-wrapper">
-              <div class="upload-area" id="pdf-upload-area">
-                <i class="fas fa-file-pdf upload-icon"></i>
-                <span class="upload-label-text" id="pdf-label-text">Click to choose a PDF&hellip;</span>
-                <input type="file" id="book-file" name="bookFile" accept=".pdf,application/pdf"
-                       onchange="updateUploadLabel('book-file','pdf-label-text','pdf-upload-area')">
-              </div>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Feedback message area -->
-        <div id="add-book-messages" class="mt-3"></div>
-
-        <div class="d-flex flex-column align-items-center mt-4">
-          <button id="add-book-btn" onclick="addBook()" class="btn btn-success w-100 mb-2">
-            <i class="fas fa-plus-circle mr-2"></i>Add Book
-          </button>
-          <button onclick="showSection('search-books')" class="btn btn-outline-light">← Back to Main Page</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-
-        <!-- Admin Section to Manage Users -->
-        <div id="admin-section" class="mt-4" style="display: none;">
-          <div class="card shadow-lg bg-dark text-white p-4 border-0">
-            <div class="card-body">
-              <h2 class="card-title text-success text-center mb-4">👥 Manage Users</h2>
-              <div id="users-messages" class="mt-2"></div>
-              <div class="table-responsive">
-                <table class="table table-dark table-hover text-white">
-                  <thead class="thead-light">
-                    <tr>
-                      <th scope="col">👤 Username</th>
-                      <th scope="col">🔐 Role</th>
-                      <th scope="col" class="text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="user-list">
-                    <!-- Dynamically injected rows here -->
-                  </tbody>
-                </table>
-              </div>
-              <div class="text-center mt-4">
-                <button onclick="showSection('search-books')" class="btn btn-outline-light">
-                  ← Back to Main Page
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <!-- User Profile Section -->
 <div id="profile-section" style="display: none;">
@@ -438,7 +355,128 @@
         </div>
     </div>
 </div>
+
+        <!-- Borrowing Section -->
+        <div id="borrowing-section" style="display: none;">
+            <div class="container mt-4">
+                <div class="card shadow-lg bg-dark text-white border-0">
+                    <div class="card-body p-4">
+                        <h2 class="card-title text-success mb-4 text-center">
+                            <i class="fas fa-book-reader"></i> My Borrowed Books
+                        </h2>
+
+                        <!-- Borrowing Status -->
+                        <div id="borrowing-status" class="mb-4">
+                            <div class="text-center">
+                                <div class="spinner-border text-success" role="status">
+                                    <span class="sr-only">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading borrowed books...</p>
+                            </div>
+                        </div>
+
+                        <!-- Unpaid Fines Summary (FR-03: Borrowed Books & Fines) -->
+                        <div id="borrowing-fines-summary" style="display: none;" class="mt-3"></div>
+
+                        <!-- Borrowed Books List -->
+                        <div id="borrowed-books-list" style="display: none;">
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Book</th>
+                                            <th>Borrowed Date</th>
+                                            <th>Due Date</th>
+                                            <th>Status</th>
+                                            <th>Fine</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="borrowed-books-tbody">
+                                        <!-- Dynamically filled -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- No Borrowed Books -->
+                        <div id="no-borrowed-books" style="display: none;" class="text-center mt-5">
+                            <i class="fas fa-book-open text-muted" style="font-size: 64px;"></i>
+                            <h3 class="mt-3 text-muted">No borrowed books</h3>
+                            <p class="text-muted">Visit the library to borrow physical books!</p>
+                            <a href="index.html" class="btn btn-primary mt-3">
+                                <i class="fas fa-search"></i> Browse Books
+                            </a>
+                        </div>
+
+                        <div id="borrowing-messages" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        
+        <!-- Back Button -->
+        <div class="profile-back-section">
+            <button onclick="showSection('search-books')" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left"></i> Back to Library
+            </button>
+        </div>
+
+    </div>
   
+    <!-- RESERVATIONS SECTION -->
+    <div id="reservations-section" style="display: none;">
+        <div class="container mt-4">
+            <div class="card shadow-lg bg-dark text-white border-0">
+                <div class="card-body p-4">
+                    <h2 class="card-title text-success mb-4 text-center">
+                        <i class="fas fa-clock"></i> My Reservations
+                    </h2>
+                    <p class="text-muted text-center mb-4">Books you've reserved while waiting for a copy to become available.</p>
+                    <div id="reservations-list" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Back Button -->
+        <div class="profile-back-section">
+            <button onclick="showSection('search-books')" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left"></i> Back to Library
+            </button>
+        </div>
+
+    </div>
+
+    <!-- CHALLENGES SECTION -->
+    <div id="challenges-section" style="display: none;">
+        <div class="container mt-4">
+            <div class="card shadow-lg bg-dark text-white border-0">
+                <div class="card-body p-4">
+                    <h2 class="card-title text-success mb-4 text-center">
+                        <i class="fas fa-trophy"></i> Reading Challenges
+                    </h2>
+                    <ul class="nav nav-tabs" id="challengesTabs">
+                        <li class="nav-item"><a class="nav-link active" href="#" onclick="switchChallengeTab('active')">Active Challenges</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchChallengeTab('my')">My Challenges</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchChallengeTab('badges')">Badges</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchChallengeTab('leaderboard')">Leaderboard</a></li>
+                    </ul>
+                    <div id="challenges-list" class="mt-3"></div>
+                    <div id="my-challenges" class="mt-3" style="display:none;"></div>
+                    <div id="badges-list" class="mt-3" style="display:none;"></div>
+                    <div id="leaderboard-list" class="mt-3" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Back Button -->
+        <div class="profile-back-section">
+            <button onclick="showSection('search-books')" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left"></i> Back to Library
+            </button>
+        </div>
+
+    </div>
+
         <!-- Logout Button -->
         <div class="mt-4 text-center">
             <div class="button-wrapper">
@@ -487,11 +525,10 @@
                     <div class="col-md-4">
                         <h5>Contact Us</h5>
                         <address>
-                            <strong>Library</strong><br>
-                            Accra, Ghana<br>
-                            Ablekuma<br>
+                            <strong>Tesano Community Library</strong><br>
+                            Tesano, Accra, Ghana<br>
                             <abbr title="Phone">Tel:</abbr> 059 7970 791<br>
-                            <a href="mailto:dessy6digit@gmail.com">des2library.com</a>
+                            <a href="mailto:info@tesanolibrary.com">tesanolibrary.com</a>
                         </address>
                         <h5>Follow Us</h5>
                         <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
@@ -501,7 +538,7 @@
                 </div>
                 <div class="row mt-4">
                     <div class="col-md-12 text-center">
-                        <p>&copy; 2026 Library. All rights reserved.</p>
+                        <p>&copy; 2026 Tesano Community Library. All rights reserved.</p>
                     </div>
                 </div>
             </div>
@@ -524,7 +561,7 @@
       <div class="chat-avatar">📚</div>
       <div class="chat-title">
         <strong>LibBot</strong>
-        <small>Des2 Library Assistant</small>
+        <small>Tesano Library Assistant</small>
       </div>
     </div>
     <div class="chat-header-actions">
@@ -558,6 +595,53 @@
       <div class="modal-buttons">
         <button id="confirm-modal-ok" class="btn btn-danger">Delete</button>
         <button id="confirm-modal-cancel" class="btn btn-outline-light">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guest Access Modal -->
+  <div id="guest-access-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fas fa-user-circle"></i> Login Required</h3>
+        <button class="modal-close" onclick="closeGuestModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="guest-modal-message" class="alert alert-info">
+          Please login or create an account to access this feature.
+        </div>
+        
+        <!-- Login Form -->
+        <div id="guest-login-form">
+          <div class="form-group">
+            <label for="guest-email-username">
+              <i class="fas fa-envelope"></i> Email or Username
+            </label>
+            <input type="text" id="guest-email-username" class="form-control" 
+                   placeholder="Enter your email or username">
+          </div>
+          
+          <div class="form-group">
+            <label for="guest-password">
+              <i class="fas fa-lock"></i> Password
+            </label>
+            <input type="password" id="guest-password" class="form-control" 
+                   placeholder="Enter your password">
+          </div>
+          
+          <div id="guest-login-messages"></div>
+          
+          <button id="guest-login-btn" class="btn btn-primary btn-block" onclick="handleGuestLogin()">
+            <i class="fas fa-sign-in-alt"></i> Login
+          </button>
+        </div>
+        
+        <!-- Register Prompt -->
+        <div class="register-prompt">
+          <p>Don't have an account? 
+            <a href="auth.html?mode=register" onclick="closeGuestModal()">Create one here</a>
+          </p>
+        </div>
       </div>
     </div>
   </div>

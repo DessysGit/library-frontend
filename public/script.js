@@ -1,4 +1,4 @@
-// Automatic API URL detection based on current environment
+﻿// Automatic API URL detection based on current environment
 const API_BASE_URL = (() => {
   const currentHost = window.location.hostname;
   const isLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1';
@@ -16,7 +16,7 @@ const API_BASE_URL = (() => {
   }
 })();
 
-// ─── JWT Auto-Inject & 401 Handler ─────────────────────────────────────────
+// â”€â”€â”€ JWT Auto-Inject & 401 Handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Intercept every fetch() call. If the request targets our Render backend,
 // automatically attach the stored JWT as an Authorization header.
 // Also handles 401 responses globally — if the token is expired/invalid,
@@ -27,14 +27,18 @@ let _sessionExpiredRedirecting = false; // prevents parallel 401s from each trig
   window.fetch = function(input, init = {}) {
     const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : String(input));
     const isBackendCall = API_BASE_URL && url.startsWith(API_BASE_URL);
+    let hadToken = false; // true only if the request actually carried a JWT
     if (isBackendCall) {
       const token = localStorage.getItem('authToken');
+      hadToken = !!token;
       if (token) {
         init.headers = Object.assign({ 'Authorization': `Bearer ${token}` }, init.headers || {});
       }
     }
     return _fetch.call(this, input, init).then(response => {
-      if (isBackendCall && response.status === 401 && !_sessionExpiredRedirecting) {
+      // Only treat a 401 as "session expired" when the user actually had a token.
+      // Guests legitimately get 401s (e.g. /current-user) and must stay in guest mode.
+      if (isBackendCall && hadToken && response.status === 401 && !_sessionExpiredRedirecting) {
         const currentPage = window.location.pathname.split('/').pop();
         // Skip redirect when already on auth page or when the endpoint itself
         // legitimately returns 401 (wrong password, unverified email, etc.)
@@ -64,6 +68,159 @@ const seedAdminUsername = 'admin';
 // Initialize user role
 let userRole = "";
 
+// Guest modal callback - stores action to perform after login
+let guestActionCallback = null;
+
+// â”€â”€ Guest Modal Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function showGuestModal(message, callback) {
+    const modal = document.getElementById('guest-access-modal');
+    const messageEl = document.getElementById('guest-modal-message');
+    if (!modal) return;
+    
+    if (message) messageEl.textContent = message;
+    guestActionCallback = callback;
+    modal.style.display = 'block';
+    modal.classList.add('active');
+    
+    // Clear previous inputs
+    const emailInput = document.getElementById('guest-email-username');
+    const passwordInput = document.getElementById('guest-password');
+    const messagesEl = document.getElementById('guest-login-messages');
+    if (emailInput) emailInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+    if (messagesEl) messagesEl.innerHTML = '';
+}
+
+function closeGuestModal() {
+    const modal = document.getElementById('guest-access-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+    }
+    guestActionCallback = null;
+}
+
+async function handleGuestLogin() {
+    const emailOrUsername = document.getElementById('guest-email-username').value.trim();
+    const password = document.getElementById('guest-password').value;
+    const loginBtn = document.getElementById('guest-login-btn');
+    const messagesEl = document.getElementById('guest-login-messages');
+    
+    if (!emailOrUsername || !password) {
+        if (messagesEl) messagesEl.innerHTML = '<div class="alert alert-danger">Please fill in all fields</div>';
+        return;
+    }
+    
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Logging in...';
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ emailOrUsername, password })
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            userRole = user.role;
+            window.currentUsername = user.username;
+            
+            // Store auth token
+            if (user.token) localStorage.setItem('authToken', user.token);
+            
+            // Close modal
+            closeGuestModal();
+            
+            // Show success message
+            showToast(`Welcome back, ${user.username}!`, 'success');
+            
+            // Refresh UI
+            updateUIForAuthState(true);
+            await initializeChatbot();
+            await refreshProfilePicture();
+            fetchBooks();
+            
+            // Execute stored callback if any
+            if (guestActionCallback) {
+                const action = guestActionCallback;
+                guestActionCallback = null;
+                setTimeout(() => action(), 500);
+            }
+        } else {
+            const data = await response.json();
+            const errorMessage = data.error || data.message || 'Login failed';
+            if (messagesEl) messagesEl.innerHTML = `<div class="alert alert-danger">${errorMessage}</div>`;
+        }
+    } catch (error) {
+        console.error('Guest login error:', error);
+        if (messagesEl) messagesEl.innerHTML = '<div class="alert alert-danger">Network error. Please try again.</div>';
+    } finally {
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+        }
+    }
+}
+
+// Update UI based on authentication state
+function updateUIForAuthState(isAuthenticated) {
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const sidebarAdminControls = document.getElementById('sidebar-admin-controls');
+    const chatIcon = document.getElementById('chat-icon');
+    const burgerUsername = document.getElementById('burger-username');
+    const guestTopBanner = document.getElementById('guest-top-banner');
+    
+    // User links
+    const userProfileLink = document.getElementById('user-profile-link');
+    const userBorrowingLink = document.getElementById('user-borrowing-link');
+    const userReservationsLink = document.getElementById('user-reservations-link');
+    const userChallengesLink = document.getElementById('user-challenges-link');
+    const logoutLink = document.getElementById('logout-link');
+    
+    if (isAuthenticated) {
+        // User is logged in - hide guest UI, show user UI
+        document.body.classList.remove('guest-mode');
+        if (loginForm) loginForm.style.display = 'none';
+        if (registerForm) registerForm.style.display = 'none';
+        if (guestTopBanner) guestTopBanner.style.display = 'none';
+        if (chatIcon) chatIcon.style.display = 'block';
+        
+        // Show user links
+        if (userProfileLink) userProfileLink.style.display = 'block';
+        if (userBorrowingLink) userBorrowingLink.style.display = 'block';
+        if (userReservationsLink) userReservationsLink.style.display = 'block';
+        if (userChallengesLink) userChallengesLink.style.display = 'block';
+        if (logoutLink) logoutLink.style.display = 'block';
+        
+        if (userRole === 'admin') {
+            if (sidebarAdminControls) sidebarAdminControls.style.display = 'block';
+        } else {
+            if (sidebarAdminControls) sidebarAdminControls.style.display = 'none';
+        }
+    } else {
+        // Guest user - show guest UI
+        document.body.classList.add('guest-mode');
+        if (loginForm) loginForm.style.display = 'block';
+        if (registerForm) registerForm.style.display = 'none';
+        if (guestTopBanner) guestTopBanner.style.display = 'block';
+        if (sidebarAdminControls) sidebarAdminControls.style.display = 'none';
+        if (chatIcon) chatIcon.style.display = 'none';
+        if (burgerUsername) burgerUsername.innerText = 'Guest';
+        
+        // Hide all user-specific links
+        if (userProfileLink) userProfileLink.style.display = 'none';
+        if (userBorrowingLink) userBorrowingLink.style.display = 'none';
+        if (userReservationsLink) userReservationsLink.style.display = 'none';
+        if (userChallengesLink) userChallengesLink.style.display = 'none';
+        if (logoutLink) logoutLink.style.display = 'none';
+    }
+}
+
 // Ensure the necessary elements are hidden on initial load
 document.addEventListener('DOMContentLoaded', async () => {    
     // Show loading state initially
@@ -76,6 +233,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     try {
+        // Gate on backend readiness first (handles free-tier cold starts)
+        await waitForBackend();
+
         // Check authentication status
         const authCheckPromise = checkAuthStatus();
         const timeoutPromise = new Promise((_, reject) => 
@@ -93,13 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Hide loading state
         hideLoadingState();
         
-        if (!isAuthenticated) {
-            // User is not authenticated - redirect to auth page immediately
-            window.location.replace('auth.html');
-            return;
-        }
-        
-        // User is authenticated - show main app
+        // Show main app for everyone (guest and authenticated users)
         const hamburgerButton = document.getElementById('hamburger-button');
         const searchBooksSection = document.getElementById('search-books');
         const newsletterSection = document.getElementById('newsletter-section');
@@ -113,6 +267,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (mainContent) mainContent.style.display = 'block';
         if (footer) footer.style.display = 'block';
         if (chatIcon) chatIcon.style.display = 'block';
+        
+        // Show login button for guests, user menu for authenticated users
+        updateUIForAuthState(isAuthenticated);
         
         // Fetch books if on main page
         const titleInput = document.getElementById('search-title');
@@ -182,6 +339,56 @@ function hideLoadingState() {
     }
 }
 
+// ─── Free-tier cold-start handler ("waking up" gate) ────────────────────────
+// Free hosting (Render free tier) spins the backend down after ~15 min idle,
+// so the first visit after a quiet period can take 30-60s. Instead of letting
+// requests hang on a dead server, poll the instant-response /health endpoint
+// and tell the user what's happening.
+function wakeBackendMessage(msg) {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        const p = overlay.querySelector('.loading-content p');
+        if (p) p.textContent = msg;
+    }
+}
+
+async function pingBackendHealth(timeoutMs = 4000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const res = await fetch(`${API_BASE_URL}/health`, { signal: controller.signal, cache: 'no-store' });
+        if (res.ok) {
+            const data = await res.json().catch(() => null);
+            return !!(data && data.status === 'ok');
+        }
+        return false;
+    } catch (e) {
+        return false;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+async function waitForBackend(maxWaitMs = 120000) {
+    // Fast path: server is warm (or running locally) — respond instantly.
+    if (await pingBackendHealth()) return true;
+
+    // Cold start: keep the existing loading overlay visible but explain why.
+    showLoadingState();
+    wakeBackendMessage('Waking up the library… ☕ (first visit after idle can take up to a minute)');
+    const start = Date.now();
+    while (Date.now() - start < maxWaitMs) {
+        await new Promise(r => setTimeout(r, 3000));
+        if (await pingBackendHealth()) {
+            wakeBackendMessage('Loading...');
+            return true;
+        }
+    }
+    // Give up waiting but let the page proceed — normal error handling kicks in.
+    wakeBackendMessage('Loading...');
+    return false;
+}
+
 // Helper: get auth headers with JWT token if available
 function getAuthHeaders(extra = {}) {
     const token = localStorage.getItem('authToken');
@@ -245,10 +452,6 @@ async function login() {
             if (userRole === 'admin') {
                 const sidebarAdminControls = document.getElementById('sidebar-admin-controls');
                 if (sidebarAdminControls) sidebarAdminControls.style.display = 'block';
-                const addBookLink = document.getElementById('add-book-link');
-                const manageUsersLink = document.getElementById('manage-users-link');
-                if (addBookLink) addBookLink.style.display = 'block';
-                if (manageUsersLink) manageUsersLink.style.display = 'block';
             }
 
             const burgerUsername = document.getElementById('burger-username');
@@ -322,7 +525,7 @@ async function resendVerification() {
             document.getElementById('resend-email').value = '';
             setTimeout(() => {
                 displayMessage('resend-messages',
-                    data.message + '<br><br><strong>Remember:</strong><br>• Check your spam folder<br>• The link expires in 24 hours',
+                    data.message + '<br><br><strong>Remember:</strong><br>â€¢ Check your spam folder<br>â€¢ The link expires in 24 hours',
                     'success');
             }, 2000);
             setTimeout(() => {
@@ -342,44 +545,48 @@ async function resendVerification() {
 // Function to handle logout
 async function logout() {
     try {
-        const response = await fetch(`${API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
-        if (response.ok) {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('authState');
-            localStorage.removeItem('userData');
-
-            const ids = ['hamburger-button','search-books','manage-users-link','add-book-link',
-                'admin-button','admin-section','profile-section','add-book-section',
-                'newsletter-section','main-content','footer','chat-icon'];
-            ids.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
-
-            const loginForm = document.getElementById('login-form');
-            const registerForm = document.getElementById('register-form');
-            if (loginForm) loginForm.style.display = 'block';
-            if (registerForm) registerForm.style.display = 'none';
-
-            const bookList = document.getElementById('book-list');
-            const pagination = document.getElementById('pagination');
-            if (bookList) bookList.innerHTML = '';
-            if (pagination) pagination.innerHTML = '';
-
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar && sidebar.classList.contains('active')) sidebar.classList.remove('active');
-
-            const profilePicture = document.getElementById('profile-picture');
-            const burgerProfilePicture = document.getElementById('burger-profile-picture');
-            if (profilePicture) profilePicture.src = '';
-            if (burgerProfilePicture) burgerProfilePicture.src = '';
-
-            userRole = '';
-            window.location.href = 'auth.html';
-        } else {
-            showToast('Failed to log out. Please try again.', 'error');
-        }
+        // Clear session cookie by calling logout endpoint
+        await fetch(`${API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
     } catch (error) {
-        console.error('Logout error:', error);
-        showToast('Failed to log out. Please try again.', 'error');
+        console.error('Logout API error:', error);
     }
+
+    // Clear all stored authentication data
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('authState');
+    localStorage.removeItem('userData');
+    localStorage.removeItem(`book-${window.currentBookId}-reaction`);
+
+    // Close sidebar if open
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.classList.contains('active')) sidebar.classList.remove('active');
+
+    // Clear profile pictures
+    const profilePicture = document.getElementById('profile-picture');
+    const burgerProfilePicture = document.getElementById('burger-profile-picture');
+    if (profilePicture) profilePicture.src = '';
+    if (burgerProfilePicture) burgerProfilePicture.src = '';
+
+    // Reset user state
+    userRole = '';
+    window.currentUsername = '';
+
+    // From sub-pages (e.g. book details) return to the main catalog page;
+    // on the main page we simply stay put and switch to guest mode.
+    const currentPage = window.location.pathname.split('/').pop();
+    if (currentPage && currentPage !== 'index.html') {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    // Switch the UI to guest mode (same state as a fresh guest visit)
+    updateUIForAuthState(false);
+
+    // Return to the book catalog view and refresh it as a guest
+    showSection('search-books');
+
+    // Confirm logout
+    showToast("You've been signed out — browsing as a guest.", 'info');
 }
 
 function closeMenuOnClickOutside(event) {
@@ -428,7 +635,7 @@ async function subscribeNewsletter(event) {
             body: JSON.stringify({ email })
         });
         if (response.ok) {
-            displayMessage(msgBox, '✅ Subscribed successfully! Check your inbox.', 'success');
+            displayMessage(msgBox, 'âœ… Subscribed successfully! Check your inbox.', 'success');
             emailInput.value = '';
         } else {
             const errorMessage = await response.text();
@@ -453,7 +660,20 @@ function toggleMenu() {
 }
 
 async function showSection(sectionId) {
-    const sections = document.querySelectorAll('#register-form, #login-form, #search-books, #profile-section, #admin-section, #add-book-section, .newsletter-section');
+    // Auth guard - redirect to login modal for protected sections
+    const protectedSections = ['profile-section', 'borrowing-section', 'reservations-section', 'challenges-section'];
+    if (protectedSections.includes(sectionId) && !isUserLoggedIn()) {
+        const messages = {
+            'profile-section': 'Please log in to view your profile.',
+            'borrowing-section': 'Please log in to view your borrowed books.',
+            'reservations-section': 'Please log in to view your reservations.',
+            'challenges-section': 'Please log in to view reading challenges.'
+        };
+        showGuestModal(messages[sectionId] || 'Please log in to access this feature.', () => showSection(sectionId));
+        return;
+    }
+
+    const sections = document.querySelectorAll('#register-form, #login-form, #search-books, #profile-section, #borrowing-section, #reservations-section, #challenges-section, .newsletter-section');
     sections.forEach(section => {
         if (section) section.style.display = section.id === sectionId ? 'block' : 'none';
     });
@@ -488,15 +708,21 @@ async function showSection(sectionId) {
     const sidebar = document.getElementById('sidebar');
     if (sidebar && sidebar.classList.contains('active')) sidebar.classList.remove('active');
 
-    if (sectionId === 'admin-section') fetchUsers();
     if (sectionId === 'profile-section') {
         loadProfileData();
         await refreshProfilePicture();
     }
 
-    if (sectionId === 'add-book-section' && userRole !== 'admin') {
-        showToast('You do not have access to this section.', 'error');
-        showSection('search-books');
+    if (sectionId === 'borrowing-section') {
+        loadBorrowedBooks();
+    }
+
+    if (sectionId === 'reservations-section') {
+        loadMyReservations();
+    }
+
+    if (sectionId === 'challenges-section') {
+        loadChallenges();
     }
 
     const addBookMessages = document.getElementById('add-book-messages');
@@ -579,16 +805,34 @@ async function fetchBooks(query = '', page = 1) {
                                 <p class="description-text" title="${book.description || ''}">${book.description || 'No description available'}</p>
                             </div>
                         </div>
-                        <div class="like-dislike-ratings">
-                            <div class="like-dislike-buttons">
-                                <button class="like-button" onclick="handleLikeDislike(${book.id}, 'like')">👍 ${book.likes || 0}</button>
-                                <button class="dislike-button" onclick="handleLikeDislike(${book.id}, 'dislike')">👎 ${book.dislikes || 0}</button>
-                            </div>
-                            <button class="btn btn-secondary btn-sm" onclick="showBookDetails(${book.id})">Download</button>
-                            <div class="ratings">
-                                <span><i class="fas fa-star text-warning"></i> ${book.averageRating ? book.averageRating.toFixed(1) : 'N/A'} (${book.totalRatings || 0} ratings)</span>
-                            </div>
+                    <div class="like-dislike-ratings">
+                        <div class="like-dislike-buttons">
+                            <button class="like-button" onclick="handleLikeDislike(${book.id}, 'like')"><i class="fas fa-thumbs-up"></i> ${book.likes || 0}</button>
+                            <button class="dislike-button" onclick="handleLikeDislike(${book.id}, 'dislike')"><i class="fas fa-thumbs-down"></i> ${book.dislikes || 0}</button>
                         </div>
+                        ${book.hasPhysicalCopy ? (book.availableCopies === 0 ? `
+                            <button class="btn btn-warning btn-sm reserve-btn" onclick="reserveBook(${book.id})" title="This copy is checked out — join the reservation queue">
+                                <i class="fas fa-clock"></i> Reserve
+                            </button>
+                        ` : `
+                            <button class="btn btn-success btn-sm borrow-btn" onclick="borrowBook(${book.id})" title="Borrow physical copy from library">
+                                <i class="fas fa-book-reader"></i> Borrow
+                            </button>
+                        `) : ''}
+                        ${book.hasDigitalCopy ? `
+                            <button class="btn btn-success btn-sm read-btn" onclick="showBookDetails(${book.id})" title="Read on site">
+                                <i class="fas fa-book-open"></i> Read
+                            </button>
+                        ` : ''}
+                        ${!book.hasPhysicalCopy && !book.hasDigitalCopy ? `
+                            <button class="btn btn-secondary btn-sm" onclick="showBookDetails(${book.id})" title="View details">
+                                <i class="fas fa-info-circle"></i> Details
+                            </button>
+                        ` : ''}
+                        <div class="ratings">
+                            <span><i class="fas fa-star text-warning"></i> ${book.averageRating ? book.averageRating.toFixed(1) : 'N/A'} (${book.totalRatings || 0} ratings)</span>
+                        </div>
+                    </div>
                     </div>
                 `;
                 bookList.appendChild(bookItem);
@@ -621,8 +865,8 @@ async function fetchBooks(query = '', page = 1) {
 function updateLikeDislikeUI(bookId, likes, dislikes, action) {
     const likeButton    = document.querySelector(`#book-${bookId} .like-button`);
     const dislikeButton = document.querySelector(`#book-${bookId} .dislike-button`);
-    if (likeButton)    { likeButton.innerHTML    = `👍 ${likes}`;    likeButton.classList.toggle('active', action === 'like'); }
-    if (dislikeButton) { dislikeButton.innerHTML = `👎 ${dislikes}`; dislikeButton.classList.toggle('active', action === 'dislike'); }
+    if (likeButton)    { likeButton.innerHTML    = `<i class="fas fa-thumbs-up"></i> ${likes}`;    likeButton.classList.toggle('active', action === 'like'); }
+    if (dislikeButton) { dislikeButton.innerHTML = `<i class="fas fa-thumbs-down"></i> ${dislikes}`; dislikeButton.classList.toggle('active', action === 'dislike'); }
 }
 
 function getUserAction(bookId) { return localStorage.getItem(`book-${bookId}-reaction`); }
@@ -648,7 +892,7 @@ function hideLoadingSpinner() {
     if (spinner) spinner.style.display = 'none';
 }
 
-// ── Toast Notifications ──────────────────────────────────────────────────────
+// â”€â”€ Toast Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showToast(message, type = 'info', duration = 3500) {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -663,7 +907,7 @@ function showToast(message, type = 'info', duration = 3500) {
     }, duration);
 }
 
-// ── Confirm Modal ─────────────────────────────────────────────────────────────
+// â”€â”€ Confirm Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showConfirmModal(message, onConfirm, dangerLabel = 'Delete') {
     const overlay   = document.getElementById('confirm-modal-overlay');
     const msgEl     = document.getElementById('confirm-modal-message');
@@ -684,7 +928,7 @@ function showConfirmModal(message, onConfirm, dangerLabel = 'Delete') {
     overlay.classList.add('active');
 }
 
-// ── displayMessage ─────────────────────────────────────────────────────────────
+// â”€â”€ displayMessage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function displayMessage(elementId, message, type = 'error') {
     const messageElement = document.getElementById(elementId);
     if (messageElement) {
@@ -739,19 +983,19 @@ async function fetchUsers() {
 
 async function grantAdmin(userId) {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/grant-admin`, { method: 'POST', credentials: 'include' });
-    if (response.ok) { showToast('✅ Admin role granted.', 'success'); fetchUsers(); }
+    if (response.ok) { showToast('âœ… Admin role granted.', 'success'); fetchUsers(); }
     else { showToast('Failed to grant admin: ' + await response.text(), 'error'); }
 }
 
 async function revokeAdmin(userId) {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/revoke-admin`, { method: 'POST', credentials: 'include' });
-    if (response.ok) { showToast('✅ Admin role revoked.', 'success'); fetchUsers(); }
+    if (response.ok) { showToast('âœ… Admin role revoked.', 'success'); fetchUsers(); }
     else { showToast('Failed to revoke admin: ' + await response.text(), 'error'); }
 }
 
 async function deleteUser(userId) {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, { method: 'DELETE', credentials: 'include' });
-    if (response.ok) { showToast('✅ User deleted.', 'success'); fetchUsers(); }
+    if (response.ok) { showToast('âœ… User deleted.', 'success'); fetchUsers(); }
     else { showToast('Failed to delete user: ' + await response.text(), 'error'); }
 }
 
@@ -788,7 +1032,7 @@ async function addBook() {
     document.getElementById(msgBox).innerHTML = '';
     showButtonSpinner(addBtn, '<i class="fas fa-plus-circle mr-2"></i>Add Book');
     displayMessage(msgBox,
-        '<i class="fas fa-spinner fa-spin mr-2"></i>Uploading… Please wait, this may take a moment for large files.',
+        '<i class="fas fa-spinner fa-spin mr-2"></i>Uploadingâ€¦ Please wait, this may take a moment for large files.',
         'info'
     );
 
@@ -805,7 +1049,7 @@ async function addBook() {
         const response = await fetch(`${API_BASE_URL}/books`, { method: 'POST', body: formData, credentials: 'include' });
         const data = await response.json().catch(() => null);
         if (response.ok) {
-            displayMessage(msgBox, `✅ <strong>"${data?.book?.title || title}"</strong> added successfully!`, 'success');
+            displayMessage(msgBox, `âœ… <strong>"${data?.book?.title || title}"</strong> added successfully!`, 'success');
             clearAddBookFields();
             setTimeout(() => showSection('search-books'), 1800);
         } else {
@@ -833,13 +1077,13 @@ function updateUploadLabel(inputId, labelId, areaId) {
         if (area) { area.style.borderColor = '#1DB954'; area.style.background = 'rgba(29,185,84,0.08)'; }
         const msgBox = document.getElementById('add-book-messages');
         if (msgBox && inputId === 'book-file' && file.size > 10 * 1024 * 1024) {
-            displayMessage('add-book-messages', `⚠️ Large file detected (${sizeMB} MB). Upload will take longer — please be patient and don't close the tab.`, 'info');
+            displayMessage('add-book-messages', `âš ï¸ Large file detected (${sizeMB} MB). Upload will take longer — please be patient and don't close the tab.`, 'info');
         } else if (msgBox && inputId === 'book-file') {
             msgBox.innerHTML = '';
         }
     } else {
         const isImage = inputId === 'book-cover';
-        labelText.textContent = isImage ? 'Click to choose an image…' : 'Click to choose a PDF…';
+        labelText.textContent = isImage ? 'Click to choose an imageâ€¦' : 'Click to choose a PDFâ€¦';
         labelText.style.color = '';
         if (area) { area.style.borderColor = ''; area.style.background = ''; }
     }
@@ -857,7 +1101,7 @@ function editBook(bookId) { window.location.href = `book-details.html?bookId=${b
 
 async function deleteBook(bookId) {
     const response = await fetch(`${API_BASE_URL}/books/${bookId}`, { method: 'DELETE', credentials: 'include' });
-    if (response.ok) { showToast('✅ Book deleted.', 'success'); fetchBooks(); }
+    if (response.ok) { showToast('âœ… Book deleted.', 'success'); fetchBooks(); }
     else { showToast('Failed to delete book: ' + await response.text(), 'error'); }
 }
 
@@ -1011,7 +1255,7 @@ async function uploadProfilePicture() {
                 const ts = '?timestamp=' + new Date().getTime();
                 document.getElementById('profile-picture').src = url + ts;
                 document.getElementById('burger-profile-picture').src = url + ts;
-                showToast('✅ Profile picture updated!', 'success');
+                showToast('âœ… Profile picture updated!', 'success');
             } else {
                 showToast('Failed to upload profile picture: ' + await response.text(), 'error');
             }
@@ -1027,7 +1271,7 @@ const profilePictureInput = document.getElementById('profile-picture-input');
 if (profilePictureInput) profilePictureInput.addEventListener('change', uploadProfilePicture);
 
 async function refreshProfilePicture() {
-    const defaultImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23444" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23fff" font-size="32" font-family="Arial"%3E👤%3C/text%3E%3C/svg%3E';
+    const defaultImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23444" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23fff" font-size="32" font-family="Arial"%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E';
     try {
         const response = await fetch(`${API_BASE_URL}/users/profile`, { credentials: 'include' });
         if (response.ok) {
@@ -1045,7 +1289,7 @@ async function refreshProfilePicture() {
 }
 
 function setDefaultProfilePictures() {
-    const d = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23444" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23fff" font-size="32" font-family="Arial"%3E👤%3C/text%3E%3C/svg%3E';
+    const d = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23444" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23fff" font-size="32" font-family="Arial"%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E';
     const p = document.getElementById('profile-picture');       if (p) p.src = d;
     const b = document.getElementById('burger-profile-picture'); if (b) b.src = d;
 }
@@ -1088,25 +1332,43 @@ async function checkAuthStatus() {
             hide('login-form');
             show('main-content'); show('newsletter-section'); show('hamburger-button');
             show('search-books'); show('footer');
-            hide('add-book-section'); hide('profile-section');
+            hide('profile-section');
 
             const burgerUsername = document.getElementById('burger-username');
             if (burgerUsername) burgerUsername.innerText = user.username;
 
+            // Refresh profile picture for logged-in users
             await refreshProfilePicture();
 
             if (userRole === 'admin') {
                 show('sidebar-admin-controls');
-                show('add-book-link');
-                show('manage-users-link');
             } else {
                 hide('sidebar-admin-controls');
             }
 
             show('chat-icon');
+            
+            // Update UI for authenticated user
+            updateUIForAuthState(true);
+            
             return true;
         } else {
+            // Not authenticated - show guest mode
+            const show = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'block'; };
+            const hide = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'none';  };
+            
+            hide('login-form');
+            show('main-content'); show('newsletter-section'); show('hamburger-button');
+            show('search-books'); show('footer');
+            hide('profile-section');
             hide('chat-icon');
+            
+            const burgerUsername = document.getElementById('burger-username');
+            if (burgerUsername) burgerUsername.innerText = 'Guest';
+            
+            // Update UI for guest user
+            updateUIForAuthState(false);
+            
             return false;
         }
     } catch (error) {
@@ -1153,8 +1415,8 @@ async function handleLikeDislike(bookId, action) {
 function syncLikeDislikeAcrossPages(bookId, likes, dislikes, action) {
     const likeButton    = document.querySelector(`#book-${bookId} .like-button`);
     const dislikeButton = document.querySelector(`#book-${bookId} .dislike-button`);
-    if (likeButton)    { likeButton.innerHTML    = `👍 ${likes}`;    likeButton.classList.toggle('active',    action === 'like'); }
-    if (dislikeButton) { dislikeButton.innerHTML = `👎 ${dislikes}`; dislikeButton.classList.toggle('active', action === 'dislike'); }
+    if (likeButton)    { likeButton.innerHTML    = `<i class="fas fa-thumbs-up"></i> ${likes}`;    likeButton.classList.toggle('active',    action === 'like'); }
+    if (dislikeButton) { dislikeButton.innerHTML = `<i class="fas fa-thumbs-down"></i> ${dislikes}`; dislikeButton.classList.toggle('active', action === 'dislike'); }
 }
 
 function showBookDetails(bookId) {
@@ -1198,7 +1460,7 @@ async function requestPasswordReset() {
         if (response.ok) {
             displayMessage('forgot-password-messages', data.message, 'success');
             document.getElementById('forgot-password-email').value = '';
-            setTimeout(() => { displayMessage('forgot-password-messages', data.message + '<br><br>• Check your inbox (and spam)<br>• Click the reset link within 1 hour', 'success'); }, 1500);
+            setTimeout(() => { displayMessage('forgot-password-messages', data.message + '<br><br>â€¢ Check your inbox (and spam)<br>â€¢ Click the reset link within 1 hour', 'success'); }, 1500);
             setTimeout(() => { hideForgotPasswordForm(); displayMessage('login-messages', 'Password reset email sent! Please check your email.', 'info'); }, 6000);
         } else { displayMessage('forgot-password-messages', data.message || data.error || 'Failed to send reset email', 'error'); }
     } catch (error) { displayMessage('forgot-password-messages', 'Network error. Please try again.', 'error'); }
@@ -1226,7 +1488,7 @@ async function initializeChatbot() {
 
 document.addEventListener('DOMContentLoaded', () => { setupOutsideClickListener(); });
 
-// ── Profile tab functions ────────────────────────────────────────────────────
+// â”€â”€ Profile tab functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function switchProfileTab(tabName) {
     document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.profile-tab-content').forEach(c => c.classList.remove('active'));
@@ -1270,7 +1532,7 @@ async function savePreferences() {
             ['profile-genres','profile-authors','profile-books'].forEach(id => { document.getElementById(id).disabled = true; });
             document.getElementById('edit-preferences-btn').style.display = 'block';
             document.getElementById('preferences-actions').style.display = 'none';
-            displayMessage('preferences-messages', '✅ Preferences saved!', 'success');
+            displayMessage('preferences-messages', 'âœ… Preferences saved!', 'success');
             updateFavoritesCount(favoriteGenres, favoriteAuthors, favoriteBooks);
             setTimeout(() => { const m = document.getElementById('preferences-messages'); if (m) m.innerHTML = ''; }, 3000);
         } else {
@@ -1305,7 +1567,7 @@ async function changePassword() {
             body: JSON.stringify({ password: newPassword, currentPassword })
         });
         if (response.ok) {
-            displayMessage(msgBox, '✅ Password updated successfully!', 'success');
+            displayMessage(msgBox, 'âœ… Password updated successfully!', 'success');
             ['current-password','new-password','confirm-new-password'].forEach(id => { document.getElementById(id).value = ''; });
             setTimeout(() => { const m = document.getElementById(msgBox); if (m) m.innerHTML = ''; }, 4000);
         } else {
@@ -1363,7 +1625,7 @@ function updateFavoritesCount(genres, authors, books) {
 }
 
 function setDefaultProfilePicture() {
-    const d = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="150"%3E%3Crect fill="%23444" width="150" height="150"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23fff" font-size="60" font-family="Arial"%3E👤%3C/text%3E%3C/svg%3E';
+    const d = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="150"%3E%3Crect fill="%23444" width="150" height="150"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23fff" font-size="60" font-family="Arial"%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E';
     const p = document.getElementById('profile-picture'); if (p) p.src = d;
 }
 
@@ -1385,9 +1647,9 @@ async function loadUserActivity() {
         activityList.innerHTML = activities.map(item => {
             const timeAgo  = getTimeAgo(new Date(item.createdAt));
             const bookLink = `<a href="book-details.html?bookId=${item.bookId}" style="color:#1DB954;">${item.bookTitle}</a>`;
-            if (item.type === 'review')   return `<div class="activity-item"><div><strong>📝 Reviewed:</strong> ${bookLink}</div><div style="color:#ffd700;margin-top:4px;">${'⭐'.repeat(item.rating)} ${item.rating}/5</div><div class="activity-item-time">${timeAgo}</div></div>`;
-            if (item.type === 'like')     return `<div class="activity-item" style="border-left-color:#1DB954;"><div><strong>👍 Liked:</strong> ${bookLink}</div><div class="activity-item-time">${timeAgo}</div></div>`;
-            if (item.type === 'dislike')  return `<div class="activity-item" style="border-left-color:#dc3545;"><div><strong>👎 Disliked:</strong> ${bookLink}</div><div class="activity-item-time">${timeAgo}</div></div>`;
+            if (item.type === 'review')   return `<div class="activity-item"><div><strong>&#128221; Reviewed:</strong> ${bookLink}</div><div style="color:#ffd700;margin-top:4px;">${'â­'.repeat(item.rating)} ${item.rating}/5</div><div class="activity-item-time">${timeAgo}</div></div>`;
+            if (item.type === 'like')     return `<div class="activity-item" style="border-left-color:#1DB954;"><div><strong>&#128077; Liked:</strong> ${bookLink}</div><div class="activity-item-time">${timeAgo}</div></div>`;
+            if (item.type === 'dislike')  return `<div class="activity-item" style="border-left-color:#dc3545;"><div><strong>&#128078; Disliked:</strong> ${bookLink}</div><div class="activity-item-time">${timeAgo}</div></div>`;
             return '';
         }).join('');
     } catch (error) {
@@ -1424,10 +1686,10 @@ async function loadUserReviews() {
         }
 
         reviewsList.innerHTML = reviews.map(r => {
-            const stars    = '⭐'.repeat(r.rating);
+            const stars    = 'â­'.repeat(r.rating);
             const timeAgo  = getTimeAgo(new Date(r.createdAt));
             const bookLink = `<a href="book-details.html?bookId=${r.bookId}" style="color:#1DB954;">${r.bookTitle}</a>`;
-            const preview  = r.text.length > 120 ? r.text.slice(0, 120) + '…' : r.text;
+            const preview  = r.text.length > 120 ? r.text.slice(0, 120) + 'â€¦' : r.text;
             return `<div class="review-item"><div><strong>${stars} ${bookLink}</strong><small style="color:#888;"> by ${r.author}</small></div><div style="color:#ccc;margin-top:.5rem;font-size:.9rem;">${preview}</div><div class="review-item-time">${timeAgo}</div></div>`;
         }).join('');
     } catch (error) {
@@ -1449,7 +1711,7 @@ async function loadUserReviews() {
     });
 })();
 
-// ── Hero search ──────────────────────────────────────────────────────────────
+// â”€â”€ Hero search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function toggleAdvancedSearch() {
     const advancedFilters = document.getElementById('advanced-filters');
     const toggleBtn       = document.getElementById('advanced-toggle');
@@ -1474,7 +1736,12 @@ async function quickSearch() {
         ]);
         const allBooks    = [...titleResults.books, ...authorResults.books, ...genreResults.books];
         const uniqueBooks = Array.from(new Map(allBooks.map(b => [b.id, b])).values());
-        displayQuickSearchResults(uniqueBooks);
+        const booksWithFlags = uniqueBooks.map(book => ({
+            ...book,
+            hasPhysicalCopy: book.hasPhysicalCopy || false,
+            hasDigitalCopy: book.hasDigitalCopy || false
+        }));
+        displayQuickSearchResults(booksWithFlags);
     } catch (error) {
         const bookList = document.getElementById('book-list');
         if (bookList) bookList.innerHTML = '<p class="text-center text-danger">Error loading books. Please try again.</p>';
@@ -1510,10 +1777,28 @@ function displayQuickSearchResults(books) {
                     </div></div>
                     <div class="like-dislike-ratings">
                         <div class="like-dislike-buttons">
-                            <button class="like-button" onclick="handleLikeDislike(${book.id}, 'like')">👍 ${book.likes || 0}</button>
-                            <button class="dislike-button" onclick="handleLikeDislike(${book.id}, 'dislike')">👎 ${book.dislikes || 0}</button>
+                            <button class="like-button" onclick="handleLikeDislike(${book.id}, 'like')"><i class="fas fa-thumbs-up"></i> ${book.likes || 0}</button>
+                            <button class="dislike-button" onclick="handleLikeDislike(${book.id}, 'dislike')"><i class="fas fa-thumbs-down"></i> ${book.dislikes || 0}</button>
                         </div>
-                        <button class="btn btn-secondary btn-sm" onclick="showBookDetails(${book.id})">Download</button>
+                        ${book.hasPhysicalCopy ? (book.availableCopies === 0 ? `
+                            <button class="btn btn-warning btn-sm reserve-btn" onclick="reserveBook(${book.id})" title="This copy is checked out — join the reservation queue">
+                                <i class="fas fa-clock"></i> Reserve
+                            </button>
+                        ` : `
+                            <button class="btn btn-success btn-sm borrow-btn" onclick="borrowBook(${book.id})" title="Borrow physical copy from library">
+                                <i class="fas fa-book-reader"></i> Borrow
+                            </button>
+                        `) : ''}
+                        ${book.hasDigitalCopy ? `
+                            <button class="btn btn-success btn-sm read-btn" onclick="showBookDetails(${book.id})" title="Read on site">
+                                <i class="fas fa-book-open"></i> Read
+                            </button>
+                        ` : ''}
+                        ${!book.hasPhysicalCopy && !book.hasDigitalCopy ? `
+                            <button class="btn btn-secondary btn-sm" onclick="showBookDetails(${book.id})" title="View details">
+                                <i class="fas fa-info-circle"></i> Details
+                            </button>
+                        ` : ''}
                         <div class="ratings"><span><i class="fas fa-star text-warning"></i> ${book.averageRating ? book.averageRating.toFixed(1) : 'N/A'} (${book.totalRatings || 0} ratings)</span></div>
                     </div>
                 </div>`;
@@ -1522,6 +1807,38 @@ function displayQuickSearchResults(books) {
         });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function borrowBook(bookId) {
+    if (!isUserLoggedIn()) {
+        showGuestModal('Please log in or create an account to borrow physical books.', () => borrowBook(bookId));
+        return;
+    }
+    try {
+        const response = await fetch(`${API_BASE_URL}/borrow/${bookId}`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        
+        // Handle non-JSON responses (like plain text error messages)
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            data = { error: await response.text() || `HTTP ${response.status}` };
+        }
+        
+        if (response.ok) {
+            showToast(data.message || 'Book borrowed successfully!', 'success');
+            loadBorrowedBooks();
+        } else {
+            showToast(data.error || data.message || 'Failed to borrow book.', 'error');
+        }
+    } catch (error) {
+        console.error('Error borrowing book:', error);
+        showToast('Network error. Please try again.', 'error');
+    }
 }
 
 function clearFilters() {
@@ -1536,3 +1853,309 @@ function clearFilters() {
         setTimeout(() => clearMsg.remove(), 2000);
     }
 }
+// â”€â”€â”€ Book Reservation Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function reserveBook(bookId) {
+    if (!isUserLoggedIn()) {
+        showGuestModal('Please log in or create an account to reserve books.', () => reserveBook(bookId));
+        return;
+    }
+    try {
+        const response = await fetch(`${API_BASE_URL}/reservations/${bookId}`, { method: 'POST', headers: getAuthHeaders() });
+        const data = await response.json();
+        if (response.ok) { showToast(data.message, 'success', 4000); }
+        else { showToast(data.error || 'Failed to reserve book.', 'error'); }
+    } catch (error) { showToast('Network error. Please try again.', 'error'); }
+}
+
+async function loadMyReservations() {
+    const listDiv = document.getElementById('reservations-list');
+    if (!listDiv) return;
+    listDiv.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    try {
+        const response = await fetch(`${API_BASE_URL}/reservations/my`, { headers: getAuthHeaders() });
+        const reservations = await response.json();
+        if (reservations.length === 0) {
+            listDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-clock" style="font-size:2rem;opacity:.3;"></i><p class="mt-2 text-muted">No reservations yet.</p></div>'; return;
+        }
+        listDiv.innerHTML = reservations.map(r => {
+            const badge = r.status === 'waiting' ? '<span class="badge badge-warning">In Queue</span>' : r.status === 'fulfilled' ? '<span class="badge badge-success">Ready</span>' : '<span class="badge badge-secondary">Cancelled</span>';
+            return `<div class="p-3 mb-2 rounded" style="border-left:4px solid #f0ad4e;background:#1e1e1e;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div><strong>${r.title}</strong><br><small class="text-muted">by ${r.author}</small><br><small>Position: <strong>#${r.queuePosition}</strong></small></div>
+                    <div class="text-right">${badge}<br>${r.status === 'waiting' ? `<button class="btn btn-danger btn-sm mt-1" onclick="cancelReservation(${r.id})"><i class="fas fa-times"></i> Cancel</button>` : ''}</div>
+                </div>
+                <small class="text-muted">Reserved: ${new Date(r.reservedAt).toLocaleDateString()}</small></div>`;
+        }).join('');
+    } catch (error) { listDiv.innerHTML = '<div class="text-center text-danger">Failed to load.</div>'; }
+}
+
+async function cancelReservation(id) {
+    if (!confirm('Cancel this reservation?')) return;
+    try {
+        const response = await fetch(`${API_BASE_URL}/reservations/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+        const data = await response.json();
+        if (response.ok) { showToast(data.message, 'success'); loadMyReservations(); }
+        else { showToast(data.error || 'Failed.', 'error'); }
+    } catch (error) { showToast('Network error.', 'error'); }
+}
+
+// â”€â”€â”€ Fine Management Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Fines are managed inline within "My Borrowed Books" (see loadBorrowedBooks)
+async function payFine(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/fines/pay/${id}`, { method: 'POST', headers: getAuthHeaders() });
+        const data = await response.json();
+        if (response.ok) { showToast(data.message, 'success'); loadBorrowedBooks(); }
+        else { showToast(data.error || 'Failed.', 'error'); }
+    } catch (error) { showToast('Network error.', 'error'); }
+}
+
+async function payAllFines() {
+    if (!confirm('Pay all unpaid fines?')) return;
+    try {
+        const response = await fetch(`${API_BASE_URL}/fines/pay-all`, { method: 'POST', headers: getAuthHeaders() });
+        const data = await response.json();
+        if (response.ok) { showToast(data.message, 'success'); loadBorrowedBooks(); }
+        else { showToast(data.error || 'Failed.', 'error'); }
+    } catch (error) { showToast('Network error.', 'error'); }
+}
+
+// â”€â”€â”€ Reading Challenge Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function loadChallenges() {
+    const listDiv = document.getElementById('challenges-list');
+    const myDiv = document.getElementById('my-challenges');
+    const badgesDiv = document.getElementById('badges-list');
+    const leaderboardDiv = document.getElementById('leaderboard-list');
+    try {
+        // Active challenges
+        if (listDiv) {
+            const response = await fetch(`${API_BASE_URL}/challenges`, { headers: getAuthHeaders() });
+            const challenges = await response.json();
+            if (challenges.length === 0) { listDiv.innerHTML = '<div class="text-center py-4"><p class="text-muted">No active challenges.</p></div>'; }
+            else {
+                listDiv.innerHTML = challenges.map(c => `<div class="p-3 mb-2 rounded" style="border-left:4px solid #5bc0de;background:#1e1e1e;">
+                    <div class="d-flex justify-content-between"><div><strong>${c.title}</strong><p class="mb-1"><small>${c.description || ''}</small></p><small class="text-muted">Goal: ${c.goalBooks} books | ${c.participants} participants</small></div>
+                    <div><button class="btn btn-primary btn-sm" onclick="joinChallenge(${c.id})"><i class="fas fa-plus"></i> Join</button></div></div></div>`).join('');
+            }
+        }
+        // My challenges
+        if (myDiv) {
+            const response = await fetch(`${API_BASE_URL}/challenges/my`, { headers: getAuthHeaders() });
+            const my = await response.json();
+            if (my.length === 0) { myDiv.innerHTML = '<div class="text-center py-4"><p class="text-muted">No challenges joined.</p></div>'; }
+            else {
+                myDiv.innerHTML = my.map(uc => {
+                    const pct = Math.round((uc.booksRead / uc.goalBooks) * 100);
+                    return `<div class="p-3 mb-2 rounded" style="border-left:4px solid ${uc.completedAt ? '#28a745' : '#f0ad4e'};background:#1e1e1e;">
+                        <div class="d-flex justify-content-between"><div><strong>${uc.title}</strong><div class="progress mt-2" style="height:10px;"><div class="progress-bar ${uc.completedAt ? 'bg-success' : 'bg-warning'}" style="width:${Math.min(pct,100)}%">${Math.min(pct,100)}%</div></div><small>${uc.booksRead}/${uc.goalBooks} books read</small></div>
+                        <div>${uc.completedAt ? '<span class="badge badge-success">&#127881; Done!</span>' : `<button class="btn btn-sm btn-success" onclick="updateChallengeProgress(${uc.challengeId})"><i class="fas fa-book"></i> Log Book</button>`}</div></div></div>`;
+                }).join('');
+            }
+        }
+        // Badges
+        if (badgesDiv) {
+            const response = await fetch(`${API_BASE_URL}/challenges/badges`, { headers: getAuthHeaders() });
+            const badges = await response.json();
+            if (badges.length === 0) { badgesDiv.innerHTML = '<div class="text-center py-4"><p class="text-muted">No badges yet. Complete challenges!</p></div>'; }
+            else {
+                badgesDiv.innerHTML = badges.map(b => `<div class="text-center p-2 m-1 d-inline-block" style="background:#2a2a2a;border-radius:8px;min-width:100px;"><div style="font-size:2rem;">${b.icon || '&#127942;'}</div><strong><small>${b.name}</small></strong></div>`).join('');
+            }
+        }
+        // Leaderboard
+        if (leaderboardDiv) {
+            const response = await fetch(`${API_BASE_URL}/challenges/leaderboard`, { headers: getAuthHeaders() });
+            if (!response.ok) throw new Error('Failed to fetch leaderboard');
+            const leaders = await response.json();
+            if (!Array.isArray(leaders)) throw new Error('Unexpected leaderboard response');
+            const medals = ['&#129351;','&#129352;','&#129353;'];
+            if (leaders.length === 0) { leaderboardDiv.innerHTML = '<div class="text-center py-4"><p class="text-muted">No data.</p></div>'; }
+            else {
+                leaderboardDiv.innerHTML = leaders.map((l,i) => `<div class="p-2 mb-1 rounded d-flex justify-content-between" style="background:#1e1e1e;"><span>${medals[i] || `${i+1}.`} <strong>${l.username}</strong></span><span>${l.booksBorrowed} books | ${l.badges} badges</span></div>`).join('');
+            }
+        }
+    } catch (error) { console.error('Error:', error); }
+}
+
+async function joinChallenge(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/challenges/${id}/join`, { method: 'POST', headers: getAuthHeaders() });
+        const data = await response.json();
+        if (response.ok) { showToast(data.message, 'success'); loadChallenges(); }
+        else { showToast(data.error || 'Failed.', 'error'); }
+    } catch (error) { showToast('Network error.', 'error'); }
+}
+
+async function updateChallengeProgress(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/challenges/${id}/progress`, { method: 'POST', headers: getAuthHeaders() });
+        const data = await response.json();
+        if (response.ok) { showToast(data.message, 'success', 4000); loadChallenges(); }
+        else { showToast(data.error || 'Failed.', 'error'); }
+    } catch (error) { showToast('Network error.', 'error'); }
+}
+
+function switchChallengeTab(tab) {
+    ['challenges-list', 'my-challenges', 'badges-list', 'leaderboard-list'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    document.querySelectorAll('#challengesTabs .nav-link').forEach(l => l.classList.remove('active'));
+    const activeTab = document.getElementById(tab === 'active' ? 'challenges-list' : tab === 'my' ? 'my-challenges' : tab === 'badges' ? 'badges-list' : 'leaderboard-list');
+    if (activeTab) activeTab.style.display = 'block';
+    const activeLink = document.querySelector(`#challengesTabs .nav-link[onclick*="'${tab}'"]`);
+    if (activeLink) activeLink.classList.add('active');
+    loadChallenges();
+}
+
+// â”€â”€â”€ Borrowing Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function loadBorrowedBooks() {
+    const statusDiv = document.getElementById('borrowing-status');
+    const listDiv = document.getElementById('borrowed-books-list');
+    const noBooksDiv = document.getElementById('no-borrowed-books');
+    const finesSummaryDiv = document.getElementById('borrowing-fines-summary');
+
+    try {
+        // Load borrowed books and fines in parallel (FR-03: Borrowed Books & Fines)
+        const authHeaders = { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
+        const [booksResponse, finesResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/borrow/my`, { headers: authHeaders }),
+            fetch(`${API_BASE_URL}/fines/my`, { headers: authHeaders }).catch(() => null)
+        ]);
+
+        if (!booksResponse.ok) {
+            throw new Error('Failed to load borrowed books');
+        }
+
+        const borrowedBooks = await booksResponse.json();
+        const unpaidFines = (finesResponse && finesResponse.ok)
+            ? (await finesResponse.json()).filter(f => f.status === 'unpaid')
+            : [];
+
+        statusDiv.style.display = 'none';
+
+        // Unpaid fines summary banner
+        if (finesSummaryDiv) {
+            if (unpaidFines.length > 0) {
+                const total = unpaidFines.reduce((sum, f) => sum + parseFloat(f.amount || 0), 0);
+                finesSummaryDiv.innerHTML = `
+                    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-exclamation-triangle"></i> You have <strong>${unpaidFines.length}</strong> unpaid fine${unpaidFines.length > 1 ? 's' : ''} totaling <strong>GHS ${total.toFixed(2)}</strong></span>
+                        <button class="btn btn-success btn-sm" onclick="payAllFines()"><i class="fas fa-credit-card"></i> Pay All</button>
+                    </div>`;
+                finesSummaryDiv.style.display = 'block';
+            } else {
+                finesSummaryDiv.style.display = 'none';
+            }
+        }
+
+        if (borrowedBooks.length === 0) {
+            listDiv.style.display = 'none';
+            noBooksDiv.style.display = 'block';
+            return;
+        }
+
+        const tbody = document.getElementById('borrowed-books-tbody');
+        tbody.innerHTML = '';
+
+        borrowedBooks.forEach(borrow => {
+            const borrowDate = new Date(borrow.borrowDate).toLocaleDateString();
+            const dueDate = new Date(borrow.dueDate).toLocaleDateString();
+            const isOverdue = new Date(borrow.dueDate) < new Date() && borrow.status === 'borrowed';
+            const statusBadge = isOverdue ? '<span class="badge badge-danger">Overdue</span>' :
+                               borrow.status === 'borrowed' ? '<span class="badge badge-warning">Borrowed</span>' :
+                               '<span class="badge badge-success">Returned</span>';
+
+            // Fine for this book: prefer the official unpaid fine record; otherwise
+            // show the live daily accrual (GHS 1.00/day) for overdue books
+            const matchingFine = unpaidFines.find(f => f.bookTitle === borrow.title);
+            let fineCell = '<span class="text-muted">—</span>';
+            if (matchingFine) {
+                fineCell = `
+                    <span class="text-danger"><strong>GHS ${parseFloat(matchingFine.amount).toFixed(2)}</strong></span><br>
+                    <button class="btn btn-sm btn-success mt-1" onclick="payFine(${matchingFine.id})" title="Pay fine">
+                        <i class="fas fa-credit-card"></i> Pay
+                    </button>`;
+            } else if (isOverdue) {
+                const daysOverdue = Math.ceil((new Date() - new Date(borrow.dueDate)) / (1000 * 60 * 60 * 24));
+                fineCell = `<span class="text-warning" title="Accrues at GHS 1.00 per day">GHS ${(daysOverdue * 1.0).toFixed(2)} <small>(accruing)</small></span>`;
+            }
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <strong>${borrow.title}</strong><br>
+                    <small class="text-muted">by ${borrow.author}</small>
+                </td>
+                <td>${borrowDate}</td>
+                <td>${dueDate}</td>
+                <td>${statusBadge}</td>
+                <td>${fineCell}</td>
+                <td>
+                    ${borrow.status === 'borrowed' ? `
+                        <button class="btn btn-sm btn-success" onclick="returnBook(${borrow.id})" title="Return Book">
+                            <i class="fas fa-undo"></i> Return
+                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="renewBook(${borrow.id})" title="Extend Due Date">
+                            <i class="fas fa-sync-alt"></i> Renew
+                        </button>
+                    ` : `<span class="text-muted">Returned on ${new Date(borrow.returnDate).toLocaleDateString()}</span>`}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        listDiv.style.display = 'block';
+        noBooksDiv.style.display = 'none';
+    } catch (error) {
+        console.error('Error loading borrowed books:', error);
+        statusDiv.innerHTML = '<div class="alert alert-danger">Failed to load borrowed books. Please try again.</div>';
+    }
+}
+
+async function returnBook(borrowId) {
+    if (!confirm('Are you sure you want to return this book?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/borrow/return/${borrowId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast(data.message, 'success', 3000);
+            loadBorrowedBooks();
+        } else {
+            document.getElementById('borrowing-messages').innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to return book'}</div>`;
+        }
+    } catch (error) {
+        console.error('Error returning book:', error);
+        document.getElementById('borrowing-messages').innerHTML = '<div class="alert alert-danger">Network error. Please try again.</div>';
+    }
+}
+
+async function renewBook(borrowId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/borrow/renew/${borrowId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast(data.message, 'success', 3000);
+            loadBorrowedBooks();
+        } else {
+            document.getElementById('borrowing-messages').innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to renew book'}</div>`;
+        }
+    } catch (error) {
+        console.error('Error renewing book:', error);
+        document.getElementById('borrowing-messages').innerHTML = '<div class="alert alert-danger">Network error. Please try again.</div>';
+    }
+}
+
+
