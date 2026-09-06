@@ -179,7 +179,6 @@ function updateUIForAuthState(isAuthenticated) {
     const userProfileLink = document.getElementById('user-profile-link');
     const userBorrowingLink = document.getElementById('user-borrowing-link');
     const userReservationsLink = document.getElementById('user-reservations-link');
-    const userChallengesLink = document.getElementById('user-challenges-link');
     const logoutLink = document.getElementById('logout-link');
     
     if (isAuthenticated) {
@@ -194,7 +193,6 @@ function updateUIForAuthState(isAuthenticated) {
         if (userProfileLink) userProfileLink.style.display = 'block';
         if (userBorrowingLink) userBorrowingLink.style.display = 'block';
         if (userReservationsLink) userReservationsLink.style.display = 'block';
-        if (userChallengesLink) userChallengesLink.style.display = 'block';
         if (logoutLink) logoutLink.style.display = 'block';
         
         if (userRole === 'admin') {
@@ -216,7 +214,6 @@ function updateUIForAuthState(isAuthenticated) {
         if (userProfileLink) userProfileLink.style.display = 'none';
         if (userBorrowingLink) userBorrowingLink.style.display = 'none';
         if (userReservationsLink) userReservationsLink.style.display = 'none';
-        if (userChallengesLink) userChallengesLink.style.display = 'none';
         if (logoutLink) logoutLink.style.display = 'none';
     }
 }
@@ -661,19 +658,16 @@ function toggleMenu() {
 
 async function showSection(sectionId) {
     // Auth guard - redirect to login modal for protected sections
-    const protectedSections = ['profile-section', 'borrowing-section', 'reservations-section', 'challenges-section'];
     if (protectedSections.includes(sectionId) && !isUserLoggedIn()) {
         const messages = {
             'profile-section': 'Please log in to view your profile.',
             'borrowing-section': 'Please log in to view your borrowed books.',
             'reservations-section': 'Please log in to view your reservations.',
-            'challenges-section': 'Please log in to view reading challenges.'
         };
         showGuestModal(messages[sectionId] || 'Please log in to access this feature.', () => showSection(sectionId));
         return;
     }
 
-    const sections = document.querySelectorAll('#register-form, #login-form, #search-books, #profile-section, #borrowing-section, #reservations-section, #challenges-section, .newsletter-section');
     sections.forEach(section => {
         if (section) section.style.display = section.id === sectionId ? 'block' : 'none';
     });
@@ -719,10 +713,6 @@ async function showSection(sectionId) {
 
     if (sectionId === 'reservations-section') {
         loadMyReservations();
-    }
-
-    if (sectionId === 'challenges-section') {
-        loadChallenges();
     }
 
     const addBookMessages = document.getElementById('add-book-messages');
@@ -1920,94 +1910,7 @@ async function payAllFines() {
     } catch (error) { showToast('Network error.', 'error'); }
 }
 
-// ─── Reading Challenge Functions ─────────────────────────────────────────
-async function loadChallenges() {
-    const listDiv = document.getElementById('challenges-list');
-    const myDiv = document.getElementById('my-challenges');
-    const badgesDiv = document.getElementById('badges-list');
-    const leaderboardDiv = document.getElementById('leaderboard-list');
-    try {
-        // Active challenges
-        if (listDiv) {
-            const response = await fetch(`${API_BASE_URL}/challenges`, { headers: getAuthHeaders() });
-            const challenges = await response.json();
-            if (challenges.length === 0) { listDiv.innerHTML = '<div class="text-center py-4"><p class="text-muted">No active challenges.</p></div>'; }
-            else {
-                listDiv.innerHTML = challenges.map(c => `<div class="p-3 mb-2 rounded" style="border-left:4px solid #5bc0de;background:#1e1e1e;">
-                    <div class="d-flex justify-content-between"><div><strong>${c.title}</strong><p class="mb-1"><small>${c.description || ''}</small></p><small class="text-muted">Goal: ${c.goalBooks} books | ${c.participants} participants</small></div>
-                    <div><button class="btn btn-primary btn-sm" onclick="joinChallenge(${c.id})"><i class="fas fa-plus"></i> Join</button></div></div></div>`).join('');
-            }
-        }
-        // My challenges
-        if (myDiv) {
-            const response = await fetch(`${API_BASE_URL}/challenges/my`, { headers: getAuthHeaders() });
-            const my = await response.json();
-            if (my.length === 0) { myDiv.innerHTML = '<div class="text-center py-4"><p class="text-muted">No challenges joined.</p></div>'; }
-            else {
-                myDiv.innerHTML = my.map(uc => {
-                    const pct = Math.round((uc.booksRead / uc.goalBooks) * 100);
-                    return `<div class="p-3 mb-2 rounded" style="border-left:4px solid ${uc.completedAt ? '#28a745' : '#f0ad4e'};background:#1e1e1e;">
-                        <div class="d-flex justify-content-between"><div><strong>${uc.title}</strong><div class="progress mt-2" style="height:10px;"><div class="progress-bar ${uc.completedAt ? 'bg-success' : 'bg-warning'}" style="width:${Math.min(pct,100)}%">${Math.min(pct,100)}%</div></div><small>${uc.booksRead}/${uc.goalBooks} books read</small></div>
-                        <div>${uc.completedAt ? '<span class="badge badge-success">&#127881; Done!</span>' : `<button class="btn btn-sm btn-success" onclick="updateChallengeProgress(${uc.challengeId})"><i class="fas fa-book"></i> Log Book</button>`}</div></div></div>`;
-                }).join('');
-            }
-        }
-        // Badges
-        if (badgesDiv) {
-            const response = await fetch(`${API_BASE_URL}/challenges/badges`, { headers: getAuthHeaders() });
-            const badges = await response.json();
-            if (badges.length === 0) { badgesDiv.innerHTML = '<div class="text-center py-4"><p class="text-muted">No badges yet. Complete challenges!</p></div>'; }
-            else {
-                badgesDiv.innerHTML = badges.map(b => `<div class="text-center p-2 m-1 d-inline-block" style="background:#2a2a2a;border-radius:8px;min-width:100px;"><div style="font-size:2rem;">${b.icon || '&#127942;'}</div><strong><small>${b.name}</small></strong></div>`).join('');
-            }
-        }
-        // Leaderboard
-        if (leaderboardDiv) {
-            const response = await fetch(`${API_BASE_URL}/challenges/leaderboard`, { headers: getAuthHeaders() });
-            if (!response.ok) throw new Error('Failed to fetch leaderboard');
-            const leaders = await response.json();
-            if (!Array.isArray(leaders)) throw new Error('Unexpected leaderboard response');
-            const medals = ['&#129351;','&#129352;','&#129353;'];
-            if (leaders.length === 0) { leaderboardDiv.innerHTML = '<div class="text-center py-4"><p class="text-muted">No data.</p></div>'; }
-            else {
-                leaderboardDiv.innerHTML = leaders.map((l,i) => `<div class="p-2 mb-1 rounded d-flex justify-content-between" style="background:#1e1e1e;"><span>${medals[i] || `${i+1}.`} <strong>${l.username}</strong></span><span>${l.booksBorrowed} books | ${l.badges} badges</span></div>`).join('');
-            }
-        }
-    } catch (error) { console.error('Error:', error); }
-}
-
-async function joinChallenge(id) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/challenges/${id}/join`, { method: 'POST', headers: getAuthHeaders() });
-        const data = await response.json();
-        if (response.ok) { showToast(data.message, 'success'); loadChallenges(); }
-        else { showToast(data.error || 'Failed.', 'error'); }
-    } catch (error) { showToast('Network error.', 'error'); }
-}
-
-async function updateChallengeProgress(id) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/challenges/${id}/progress`, { method: 'POST', headers: getAuthHeaders() });
-        const data = await response.json();
-        if (response.ok) { showToast(data.message, 'success', 4000); loadChallenges(); }
-        else { showToast(data.error || 'Failed.', 'error'); }
-    } catch (error) { showToast('Network error.', 'error'); }
-}
-
-function switchChallengeTab(tab) {
-    ['challenges-list', 'my-challenges', 'badges-list', 'leaderboard-list'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    });
-    document.querySelectorAll('#challengesTabs .nav-link').forEach(l => l.classList.remove('active'));
-    const activeTab = document.getElementById(tab === 'active' ? 'challenges-list' : tab === 'my' ? 'my-challenges' : tab === 'badges' ? 'badges-list' : 'leaderboard-list');
-    if (activeTab) activeTab.style.display = 'block';
-    const activeLink = document.querySelector(`#challengesTabs .nav-link[onclick*="'${tab}'"]`);
-    if (activeLink) activeLink.classList.add('active');
-    loadChallenges();
-}
-
-// ─── Borrowing Functions ──────────────────────────────────────────────────
+// ─── Borrowing Functions// ─── Borrowing Functions ──────────────────────────────────────────────────
 async function loadBorrowedBooks() {
     const statusDiv = document.getElementById('borrowing-status');
     const listDiv = document.getElementById('borrowed-books-list');
