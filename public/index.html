@@ -68,9 +68,6 @@
     <a href="javascript:void(0)" onclick="showSection('reservations-section')" id="user-reservations-link" style="display: none;">
         <i class="fas fa-clock"></i> My Reservations
     </a>
-    <a href="javascript:void(0)" onclick="showSection('challenges-section')" id="user-challenges-link" style="display: none;">
-        <i class="fas fa-trophy"></i> Reading Challenges
-    </a>
     <a href="javascript:void(0)" onclick="logout()" id="logout-link" style="display: none;">Logout</a>
 </div>
 
@@ -446,38 +443,7 @@
 
     </div>
 
-    <!-- CHALLENGES SECTION -->
-    <div id="challenges-section" style="display: none;">
-        <div class="container mt-4">
-            <div class="card shadow-lg bg-dark text-white border-0">
-                <div class="card-body p-4">
-                    <h2 class="card-title text-success mb-4 text-center">
-                        <i class="fas fa-trophy"></i> Reading Challenges
-                    </h2>
-                    <ul class="nav nav-tabs" id="challengesTabs">
-                        <li class="nav-item"><a class="nav-link active" href="#" onclick="switchChallengeTab('active')">Active Challenges</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchChallengeTab('my')">My Challenges</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchChallengeTab('badges')">Badges</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchChallengeTab('leaderboard')">Leaderboard</a></li>
-                    </ul>
-                    <div id="challenges-list" class="mt-3"></div>
-                    <div id="my-challenges" class="mt-3" style="display:none;"></div>
-                    <div id="badges-list" class="mt-3" style="display:none;"></div>
-                    <div id="leaderboard-list" class="mt-3" style="display:none;"></div>
-                </div>
-            </div>
-        </div>
-    
-        <!-- Back Button -->
-        <div class="profile-back-section">
-            <button onclick="showSection('search-books')" class="btn btn-outline-light">
-                <i class="fas fa-arrow-left"></i> Back to Library
-            </button>
-        </div>
-
-    </div>
-
-        <!-- Logout Button -->
+    <!-- Logout Button --><!-- Logout Button -->
         <div class="mt-4 text-center">
             <div class="button-wrapper">
                 <button id="logout-button" class="btn btn-danger" style="display: none;" onclick="logout()">Logout</button>
