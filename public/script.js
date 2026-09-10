@@ -656,6 +656,13 @@ function toggleMenu() {
     }
 }
 
+// ── Section switcher globals ────────────────────────────────────────────────
+// Sections that require login; guests get the login modal instead of a switch.
+const protectedSections = ['profile-section', 'borrowing-section', 'reservations-section'];
+// All toggleable main-page sections. DOM-derived at call time so a missing
+// element can never crash the switcher (guarded again below via `if (section)`).
+const sectionIds = ['search-books', 'profile-section', 'borrowing-section', 'reservations-section'];
+
 async function showSection(sectionId) {
     // Auth guard - redirect to login modal for protected sections
     if (protectedSections.includes(sectionId) && !isUserLoggedIn()) {
@@ -668,9 +675,11 @@ async function showSection(sectionId) {
         return;
     }
 
-    sections.forEach(section => {
-        if (section) section.style.display = section.id === sectionId ? 'block' : 'none';
-    });
+    sectionIds
+        .map(id => document.getElementById(id))
+        .forEach(section => {
+            if (section) section.style.display = section.id === sectionId ? 'block' : 'none';
+        });
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
